@@ -111,6 +111,24 @@ def toggle_checklist_item(item_id):
     conn.close()
     return redirect("/")
 
+@app.route("/edit/<int:university_id>")
+def edit_form(university_id):
+    conn = get_db()
+    uni = conn.execute("SELECT * FROM universities WHERE id = ?", (university_id,)).fetchone()
+    conn.close()
+    return render_template("edit.html", uni=uni)
+
+@app.route("/edit/<int:university_id>", methods=["POST"])
+def edit_submit(university_id):
+    conn = get_db()
+    conn.execute(
+        "UPDATE universities SET name = ?, deadline = ? WHERE id = ?",
+        (request.form["name"], request.form["deadline"], university_id)
+    )
+    conn.commit()
+    conn.close()
+    return redirect("/")
+
 @app.route("/delete/<int:university_id>")
 def delete(university_id):
     conn = get_db()

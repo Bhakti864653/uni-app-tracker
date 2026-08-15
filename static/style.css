@@ -56,8 +56,14 @@ h1 {
     gap: 8px;
 }
 
-.delete-link {
+.edit-link {
     margin-left: auto;
+    color: #0984e3;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.delete-link {
     color: #d63031;
     text-decoration: none;
     font-size: 0.9em;

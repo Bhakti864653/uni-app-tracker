@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit University</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Edit University</h1>
+
+    <form action="/edit/{{ uni.id }}" method="POST" class="add-form">
+        <input type="text" name="name" value="{{ uni.name }}" required>
+        <input type="date" name="deadline" value="{{ uni.deadline }}" required>
+        <button type="submit">Save</button>
+        <a href="/">Cancel</a>
+    </form>
+</body>
+</html>
