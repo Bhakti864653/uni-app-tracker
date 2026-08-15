@@ -1,0 +1,16 @@
+name: Daily deadline reminder
+
+on:
+  schedule:
+    # 13:00 UTC = 8:00 AM US Eastern during standard time (winter).
+    # During daylight saving time (summer) this runs around 9:00 AM Eastern instead.
+    - cron: "0 13 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check-deadlines:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the reminder endpoint
+        run: |
+          curl -sS "https://uni-app-tracker-b70h.onrender.com/reminders/auto?token=${{ secrets.REMINDER_TOKEN }}"

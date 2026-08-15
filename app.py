@@ -3,6 +3,7 @@ from functools import wraps
 from dotenv import load_dotenv
 import sqlite3
 import os
+import secrets
 import smtplib
 from email.mime.text import MIMEText
 from datetime import date
@@ -15,6 +16,8 @@ LOGIN_PASSWORD = os.environ["LOGIN_PASSWORD"]
 DB_PATH = os.environ.get("DATABASE_PATH", "universities.db")
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")
+REMINDER_TOKEN = os.environ.get("REMINDER_TOKEN")
+AUTO_REMINDER_DAYS = 7
 
 DEFAULT_CHECKLIST_TASKS = ["Essay", "Recommendation Letters", "Transcript"]
 STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
@@ -75,15 +78,28 @@ def add_university(conn, name, deadline):
             (new_id, task)
         )
 
-def days_remaining_text(deadline_str):
+def days_left_int(deadline_str):
     deadline_date = date.fromisoformat(deadline_str)
-    days_left = (deadline_date - date.today()).days
+    return (deadline_date - date.today()).days
+
+def days_remaining_text(deadline_str):
+    days_left = days_left_int(deadline_str)
     if days_left < 0:
         return f"{abs(days_left)} days overdue"
     elif days_left == 0:
         return "due today"
     else:
         return f"{days_left} days left"
+
+def send_email_message(subject, body):
+    message = MIMEText(body)
+    message["Subject"] = subject
+    message["From"] = EMAIL_ADDRESS
+    message["To"] = EMAIL_ADDRESS
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
+        server.send_message(message)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -217,20 +233,44 @@ def send_reminders():
     else:
         body = "Nothing pending - every application is marked Submitted!"
 
-    message = MIMEText(body)
-    message["Subject"] = "University Application Reminders"
-    message["From"] = EMAIL_ADDRESS
-    message["To"] = EMAIL_ADDRESS
-
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
-            server.send_message(message)
+        send_email_message("University Application Reminders", body)
     except smtplib.SMTPException:
         return redirect("/?reminder_error=send_failed")
 
     return redirect("/?reminder_sent=1")
+
+@app.route("/reminders/auto")
+def send_auto_reminder():
+    if not REMINDER_TOKEN or not secrets.compare_digest(request.args.get("token", ""), REMINDER_TOKEN):
+        return "Forbidden", 403
+
+    if not EMAIL_ADDRESS or not EMAIL_APP_PASSWORD:
+        return "Email not configured", 200
+
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM universities ORDER BY deadline ASC").fetchall()
+    conn.close()
+
+    urgent = [
+        row for row in rows
+        if row["status"] != "Submitted" and days_left_int(row["deadline"]) <= AUTO_REMINDER_DAYS
+    ]
+    if not urgent:
+        return "No urgent deadlines, nothing sent", 200
+
+    lines = [
+        f"- {row['name']}: due {row['deadline']} ({days_remaining_text(row['deadline'])}) - {row['status']}"
+        for row in urgent
+    ]
+    body = f"You have deadlines within {AUTO_REMINDER_DAYS} days:\n\n" + "\n".join(lines)
+
+    try:
+        send_email_message("University Application Deadline Reminder", body)
+    except smtplib.SMTPException:
+        return "Send failed", 500
+
+    return "Reminder sent", 200
 
 @app.route("/edit/<int:university_id>")
 @login_required
