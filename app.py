@@ -3,6 +3,8 @@ from functools import wraps
 from dotenv import load_dotenv
 import sqlite3
 import os
+import smtplib
+from email.mime.text import MIMEText
 from datetime import date
 
 load_dotenv()
@@ -11,6 +13,8 @@ app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 LOGIN_PASSWORD = os.environ["LOGIN_PASSWORD"]
 DB_PATH = os.environ.get("DATABASE_PATH", "universities.db")
+EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
+EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")
 
 DEFAULT_CHECKLIST_TASKS = ["Essay", "Recommendation Letters", "Transcript"]
 STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
@@ -135,6 +139,9 @@ def home():
         status_options=STATUS_OPTIONS,
         status_counts=status_counts,
         next_deadline=next_deadline,
+        reminder_sent=request.args.get("reminder_sent"),
+        reminder_error=request.args.get("reminder_error"),
+        email_configured=bool(EMAIL_ADDRESS and EMAIL_APP_PASSWORD),
     )
 
 @app.route("/add", methods=["POST"])
@@ -189,6 +196,41 @@ def delete_checklist_item(item_id):
     conn.commit()
     conn.close()
     return redirect("/")
+
+@app.route("/reminders/send")
+@login_required
+def send_reminders():
+    if not EMAIL_ADDRESS or not EMAIL_APP_PASSWORD:
+        return redirect("/?reminder_error=not_configured")
+
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM universities ORDER BY deadline ASC").fetchall()
+    conn.close()
+
+    pending = [row for row in rows if row["status"] != "Submitted"]
+    if pending:
+        lines = [
+            f"- {row['name']}: due {row['deadline']} ({days_remaining_text(row['deadline'])}) - {row['status']}"
+            for row in pending
+        ]
+        body = "Your upcoming university application deadlines:\n\n" + "\n".join(lines)
+    else:
+        body = "Nothing pending - every application is marked Submitted!"
+
+    message = MIMEText(body)
+    message["Subject"] = "University Application Reminders"
+    message["From"] = EMAIL_ADDRESS
+    message["To"] = EMAIL_ADDRESS
+
+    try:
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
+            server.send_message(message)
+    except smtplib.SMTPException:
+        return redirect("/?reminder_error=send_failed")
+
+    return redirect("/?reminder_sent=1")
 
 @app.route("/edit/<int:university_id>")
 @login_required

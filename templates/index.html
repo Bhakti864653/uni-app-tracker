@@ -19,9 +19,22 @@
             <h1>My Applications</h1>
             <div class="top-bar-actions">
                 <button id="theme-toggle" type="button" class="btn-secondary"></button>
+                {% if email_configured %}
+                <a href="/reminders/send" class="btn-secondary">Email reminders</a>
+                {% endif %}
                 <a href="/logout" class="logout-link">Log out</a>
             </div>
         </header>
+
+        {% if reminder_sent %}
+        <p class="banner banner-success">Reminder email sent!</p>
+        {% endif %}
+        {% if reminder_error == "not_configured" %}
+        <p class="banner banner-error">Email isn't configured yet - add EMAIL_ADDRESS and EMAIL_APP_PASSWORD to your environment.</p>
+        {% endif %}
+        {% if reminder_error == "send_failed" %}
+        <p class="banner banner-error">Couldn't send the email - check your email credentials.</p>
+        {% endif %}
 
         <div class="stats-bar">
             {% for option in status_options %}

@@ -361,6 +361,7 @@ h2 {
 }
 
 .btn-secondary {
+    display: inline-block;
     padding: 6px 14px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
@@ -368,11 +369,29 @@ h2 {
     color: var(--text);
     font-size: 0.85rem;
     font-weight: 500;
+    text-decoration: none;
     cursor: pointer;
 }
 
 .btn-secondary:hover {
     background: var(--neutral-bg);
+}
+
+.banner {
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+}
+
+.banner-success {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.banner-error {
+    background: var(--warning-bg);
+    color: var(--warning);
 }
 
 .card-actions {

@@ -47,3 +47,11 @@ def test_new_university_gets_default_checklist(logged_in_client):
     assert b"Essay" in response.data
     assert b"Recommendation Letters" in response.data
     assert b"Transcript" in response.data
+
+
+def test_send_reminders_without_email_config_redirects_with_error(logged_in_client):
+    # EMAIL_ADDRESS/EMAIL_APP_PASSWORD aren't set in the test environment,
+    # so this should redirect back with an error instead of crashing.
+    response = logged_in_client.get("/reminders/send")
+    assert response.status_code == 302
+    assert "reminder_error=not_configured" in response.headers["Location"]
