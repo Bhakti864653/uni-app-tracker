@@ -2,6 +2,9 @@
 
 A small web app I built to track my own university applications — deadlines, status, and progress — while learning Python and web development from scratch.
 
+**Live demo:** https://uni-app-tracker-b70h.onrender.com/
+*(hosted on a free tier — may take ~30s to wake up on first visit)*
+
 ## Features
 
 - Add universities with a name and application deadline
