@@ -2,71 +2,90 @@
 <html>
 <head>
     <title>University Application Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="top-bar">
-        <h1>My University Applications</h1>
-        <a href="/logout" class="logout-link">Log out</a>
-    </div>
+    <div class="page">
+        <header class="top-bar">
+            <h1>My Applications</h1>
+            <a href="/logout" class="logout-link">Log out</a>
+        </header>
 
-    <div class="stats-bar">
-        {% for option in status_options %}
-        <span class="stat">{{ status_counts[option] }} {{ option }}</span>
-        {% endfor %}
-        {% if next_deadline %}
-        <span class="stat stat-highlight">Next: {{ next_deadline.name }} ({{ next_deadline.days_text }})</span>
-        {% endif %}
-    </div>
-
-    <ul class="uni-list">
-        {% for uni in universities %}
-        <li class="uni-card status-{{ uni.status | replace(' ', '-') | lower }}">
-            <div class="uni-header">
-                <span class="uni-name">{{ uni.name }}</span>
-                <span class="uni-deadline">due {{ uni.deadline }} ({{ uni.days_text }})</span>
-            </div>
-            <div class="progress-track">
-                <div class="progress-fill" style="width: {{ uni.progress_percent }}%"></div>
-            </div>
-            <span class="progress-label">{{ uni.progress_percent }}% of checklist complete</span>
-            {% if uni.notes %}
-            <p class="uni-notes">{{ uni.notes }}</p>
+        <div class="stats-bar">
+            {% for option in status_options %}
+            <span class="stat"><strong>{{ status_counts[option] }}</strong> {{ option }}</span>
+            {% endfor %}
+            {% if next_deadline %}
+            <span class="stat stat-highlight">Next: {{ next_deadline.name }} &middot; {{ next_deadline.days_text }}</span>
             {% endif %}
-            <form action="/status/{{ uni.id }}" method="POST" class="status-form">
-                <select name="status">
-                    {% for option in status_options %}
-                    <option value="{{ option }}" {% if option == uni.status %}selected{% endif %}>{{ option }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit">Update</button>
-                <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
-                <a href="/delete/{{ uni.id }}" class="delete-link"
-                   onclick="return confirm('Delete {{ uni.name }}? This cannot be undone.');">Delete</a>
-            </form>
-            <ul class="checklist">
-                {% for item in uni.checklist %}
-                <li>
-                    <a href="/checklist/toggle/{{ item.id }}" class="checklist-item {% if item.done %}checked{% endif %}">
-                        {% if item.done %}[x]{% else %}[ ]{% endif %} {{ item.task }}
-                    </a>
-                    <a href="/checklist/delete/{{ item.id }}" class="checklist-delete">&times;</a>
-                </li>
-                {% endfor %}
-            </ul>
-            <form action="/checklist/add/{{ uni.id }}" method="POST" class="add-task-form">
-                <input type="text" name="task" placeholder="Add a task (e.g. Interview)" required>
-                <button type="submit">+</button>
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
+        </div>
 
-    <form action="/add" method="POST" class="add-form">
-        <h2>Add a University</h2>
-        <input type="text" name="name" placeholder="University name" required>
-        <input type="date" name="deadline" required>
-        <button type="submit">Add</button>
-    </form>
+        <ul class="uni-list">
+            {% for uni in universities %}
+            <li class="uni-card">
+                <div class="uni-top">
+                    <div>
+                        <h2 class="uni-name">{{ uni.name }}</h2>
+                        <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
+                    </div>
+                    <span class="status-badge status-{{ uni.status | replace(' ', '-') | lower }}">{{ uni.status }}</span>
+                </div>
+
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: {{ uni.progress_percent }}%"></div>
+                </div>
+                <p class="progress-label">{{ uni.progress_percent }}% of checklist complete</p>
+
+                {% if uni.notes %}
+                <p class="uni-notes">{{ uni.notes }}</p>
+                {% endif %}
+
+                <ul class="checklist">
+                    {% for item in uni.checklist %}
+                    <li class="checklist-row">
+                        <a href="/checklist/toggle/{{ item.id }}" class="checklist-item {% if item.done %}checked{% endif %}">
+                            <span class="checkbox">{% if item.done %}&#10003;{% endif %}</span>
+                            {{ item.task }}
+                        </a>
+                        <a href="/checklist/delete/{{ item.id }}" class="checklist-delete" title="Remove task">&times;</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <form action="/checklist/add/{{ uni.id }}" method="POST" class="add-task-form">
+                    <input type="text" name="task" placeholder="Add a task">
+                    <button type="submit" class="btn-icon">+</button>
+                </form>
+
+                <div class="card-footer">
+                    <form action="/status/{{ uni.id }}" method="POST" class="status-form">
+                        <select name="status">
+                            {% for option in status_options %}
+                            <option value="{{ option }}" {% if option == uni.status %}selected{% endif %}>{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-secondary">Update</button>
+                    </form>
+                    <div class="card-actions">
+                        <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
+                        <a href="/delete/{{ uni.id }}" class="delete-link"
+                           onclick="return confirm('Delete {{ uni.name }}? This cannot be undone.');">Delete</a>
+                    </div>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <form action="/add" method="POST" class="add-form">
+            <h2>Add a University</h2>
+            <div class="add-form-row">
+                <input type="text" name="name" placeholder="University name" required>
+                <input type="date" name="deadline" required>
+                <button type="submit" class="btn-primary">Add</button>
+            </div>
+        </form>
+    </div>
 </body>
 </html>

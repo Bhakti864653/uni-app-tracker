@@ -2,17 +2,24 @@
 <html>
 <head>
     <title>Edit University</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Edit University</h1>
+    <div class="page" style="max-width: 420px;">
+        <h1 style="margin-bottom: 20px;">Edit University</h1>
 
-    <form action="/edit/{{ uni.id }}" method="POST" class="add-form">
-        <input type="text" name="name" value="{{ uni.name }}" required>
-        <input type="date" name="deadline" value="{{ uni.deadline }}" required>
-        <textarea name="notes" placeholder="Notes (optional)" rows="4">{{ uni.notes }}</textarea>
-        <button type="submit">Save</button>
-        <a href="/">Cancel</a>
-    </form>
+        <form action="/edit/{{ uni.id }}" method="POST" class="add-form">
+            <input type="text" name="name" value="{{ uni.name }}" required style="width: 100%; margin-bottom: 10px;">
+            <input type="date" name="deadline" value="{{ uni.deadline }}" required style="width: 100%;">
+            <textarea name="notes" placeholder="Notes (optional)" rows="4">{{ uni.notes }}</textarea>
+            <div style="display: flex; align-items: center; gap: 14px; margin-top: 14px;">
+                <button type="submit" class="btn-primary">Save</button>
+                <a href="/" class="edit-link">Cancel</a>
+            </div>
+        </form>
+    </div>
 </body>
 </html>
