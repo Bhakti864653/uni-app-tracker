@@ -6,12 +6,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        (function () {
+            const saved = localStorage.getItem("theme");
+            if (saved) document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
 </head>
 <body>
     <div class="page">
         <header class="top-bar">
             <h1>My Applications</h1>
-            <a href="/logout" class="logout-link">Log out</a>
+            <div class="top-bar-actions">
+                <button id="theme-toggle" type="button" class="btn-secondary"></button>
+                <a href="/logout" class="logout-link">Log out</a>
+            </div>
         </header>
 
         <div class="stats-bar">
@@ -23,9 +32,24 @@
             {% endif %}
         </div>
 
+        <div class="controls-bar">
+            <input type="text" id="search-input" placeholder="Search universities...">
+            <select id="status-filter">
+                <option value="">All statuses</option>
+                {% for option in status_options %}
+                <option value="{{ option }}">{{ option }}</option>
+                {% endfor %}
+            </select>
+            <select id="sort-select">
+                <option value="deadline">Sort: Deadline</option>
+                <option value="name">Sort: Name</option>
+                <option value="status">Sort: Status</option>
+            </select>
+        </div>
+
         <ul class="uni-list">
             {% for uni in universities %}
-            <li class="uni-card">
+            <li class="uni-card" data-name="{{ uni.name }}" data-status="{{ uni.status }}" data-deadline="{{ uni.deadline }}">
                 <div class="uni-top">
                     <div>
                         <h2 class="uni-name">{{ uni.name }}</h2>
@@ -87,5 +111,64 @@
             </div>
         </form>
     </div>
+
+    <script>
+        const searchInput = document.getElementById("search-input");
+        const statusFilter = document.getElementById("status-filter");
+        const sortSelect = document.getElementById("sort-select");
+        const list = document.querySelector(".uni-list");
+
+        function applyFilters() {
+            const query = searchInput.value.toLowerCase();
+            const status = statusFilter.value;
+            const cards = list.querySelectorAll(".uni-card");
+
+            cards.forEach(function (card) {
+                const matchesSearch = card.dataset.name.toLowerCase().includes(query);
+                const matchesStatus = !status || card.dataset.status === status;
+                card.style.display = (matchesSearch && matchesStatus) ? "" : "none";
+            });
+        }
+
+        function applySort() {
+            const sortBy = sortSelect.value;
+            const cards = Array.from(list.querySelectorAll(".uni-card"));
+
+            cards.sort(function (a, b) {
+                if (sortBy === "name") return a.dataset.name.localeCompare(b.dataset.name);
+                if (sortBy === "status") return a.dataset.status.localeCompare(b.dataset.status);
+                return a.dataset.deadline.localeCompare(b.dataset.deadline);
+            });
+
+            cards.forEach(function (card) {
+                list.appendChild(card);
+            });
+        }
+
+        searchInput.addEventListener("input", applyFilters);
+        statusFilter.addEventListener("change", applyFilters);
+        sortSelect.addEventListener("change", applySort);
+
+        const themeToggle = document.getElementById("theme-toggle");
+
+        function isDarkActive() {
+            const explicit = document.documentElement.getAttribute("data-theme");
+            if (explicit) return explicit === "dark";
+            return window.matchMedia("(prefers-color-scheme: dark)").matches;
+        }
+
+        function updateToggleLabel() {
+            themeToggle.textContent = isDarkActive() ? "Light mode" : "Dark mode";
+        }
+
+        themeToggle.addEventListener("click", function () {
+            const next = isDarkActive() ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            localStorage.setItem("theme", next);
+            updateToggleLabel();
+        });
+
+        updateToggleLabel();
+    </script>
 </body>
 </html>
