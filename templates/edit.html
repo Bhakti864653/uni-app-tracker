@@ -20,11 +20,17 @@
         <form action="/edit/{{ uni.id }}" method="POST" class="add-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="name" value="{{ uni.name }}" required style="width: 100%; margin-bottom: 10px;">
-            <input type="date" name="deadline" value="{{ uni.deadline }}" required style="width: 100%;">
+            <input type="date" name="deadline" value="{{ uni.deadline }}" required style="width: 100%; margin-bottom: 10px;">
+            <input type="text" name="program" value="{{ uni.program }}" placeholder="Program / major (optional)" style="width: 100%; margin-bottom: 10px;">
+            <input type="url" name="portal_url" value="{{ uni.portal_url }}" placeholder="Application portal link (optional)" style="width: 100%; margin-bottom: 10px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="number" step="0.01" min="0" name="tuition_cost" value="{{ uni.tuition_cost if uni.tuition_cost is not none else '' }}" placeholder="Tuition cost ($)" style="width: 100%;">
+                <input type="number" step="0.01" min="0" name="financial_aid_estimate" value="{{ uni.financial_aid_estimate if uni.financial_aid_estimate is not none else '' }}" placeholder="Aid estimate ($)" style="width: 100%;">
+            </div>
             <textarea name="notes" placeholder="Notes (optional)" rows="4">{{ uni.notes }}</textarea>
             <div style="display: flex; align-items: center; gap: 14px; margin-top: 14px;">
                 <button type="submit" class="btn-primary">Save</button>
-                <a href="/" class="edit-link">Cancel</a>
+                <a href="/university/{{ uni.id }}" class="edit-link">Cancel</a>
             </div>
         </form>
     </div>

@@ -207,9 +207,23 @@ h2 {
     color: var(--warning);
 }
 
-.status-badge.status-submitted {
+.status-badge.status-submitted,
+.status-badge.status-final,
+.status-badge.status-received {
     background: var(--success-bg);
     color: var(--success);
+}
+
+.status-badge.status-drafting,
+.status-badge.status-in-review,
+.status-badge.status-requested {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+.status-badge.status-not-requested {
+    background: var(--neutral-bg);
+    color: var(--neutral);
 }
 
 .progress-track {
@@ -493,6 +507,95 @@ h2 {
 
 .btn-primary:hover {
     background: var(--accent-hover);
+}
+
+/* University profile page */
+.profile-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.task-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+.task-section h2 {
+    font-size: 1.05rem;
+    margin-bottom: 12px;
+}
+
+.task-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+}
+
+.task-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.task-title {
+    font-weight: 500;
+}
+
+.task-detail {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    margin-top: 2px;
+}
+
+.task-update-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.task-update-form select,
+.task-update-form input {
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    font-family: inherit;
+    background: var(--card-bg);
+    color: var(--text);
+}
+
+.task-update-form input {
+    flex: 1;
+    min-width: 100px;
+}
+
+.add-task-detail-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.add-task-detail-form input {
+    flex: 1;
+    min-width: 140px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    font-family: inherit;
+    background: var(--card-bg);
+    color: var(--text);
 }
 
 /* Login page */

@@ -27,6 +27,12 @@ AUTO_REMINDER_DAYS = 7
 
 DEFAULT_CHECKLIST_TASKS = ["Essay", "Recommendation Letters", "Transcript"]
 STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
+TASK_TYPES = ["essay", "recommendation", "document"]
+TASK_STATUS_OPTIONS = {
+    "essay": ["Not Started", "Drafting", "In Review", "Final"],
+    "recommendation": ["Not Requested", "Requested", "Received"],
+    "document": ["Not Started", "Requested", "Received", "Submitted"],
+}
 
 RATE_LIMIT_WINDOW_SECONDS = 900
 RATE_LIMIT_MAX_ATTEMPTS = 5
@@ -115,6 +121,24 @@ def init_db():
     existing_uni_columns = [row["name"] for row in dictrows(conn.execute("PRAGMA table_info(universities)"))]
     if "user_id" not in existing_uni_columns:
         conn.execute("ALTER TABLE universities ADD COLUMN user_id INTEGER")
+    if "program" not in existing_uni_columns:
+        conn.execute("ALTER TABLE universities ADD COLUMN program TEXT NOT NULL DEFAULT ''")
+    if "portal_url" not in existing_uni_columns:
+        conn.execute("ALTER TABLE universities ADD COLUMN portal_url TEXT NOT NULL DEFAULT ''")
+    if "tuition_cost" not in existing_uni_columns:
+        conn.execute("ALTER TABLE universities ADD COLUMN tuition_cost REAL")
+    if "financial_aid_estimate" not in existing_uni_columns:
+        conn.execute("ALTER TABLE universities ADD COLUMN financial_aid_estimate REAL")
+
+    existing_task_columns = [row["name"] for row in dictrows(conn.execute("PRAGMA table_info(tasks)"))]
+    if "prompt" not in existing_task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN prompt TEXT")
+    if "word_count" not in existing_task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN word_count INTEGER")
+    if "recommender_name" not in existing_task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN recommender_name TEXT")
+    if "recommender_email" not in existing_task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN recommender_email TEXT")
 
     # One-time migration from the old single-account schema: copy any
     # pre-existing checklist_items into the new unified tasks table.
@@ -428,6 +452,10 @@ def send_auto_reminder():
 
     return "Reminder sent", 200
 
+def parse_optional_float(value):
+    value = (value or "").strip()
+    return float(value) if value else None
+
 @app.route("/edit/<int:university_id>")
 @login_required
 def edit_form(university_id):
@@ -446,12 +474,115 @@ def edit_submit(university_id):
         conn.close()
         return "Not found", 404
     conn.execute(
-        "UPDATE universities SET name = ?, deadline = ?, notes = ? WHERE id = ?",
-        (request.form["name"], request.form["deadline"], request.form["notes"], university_id)
+        """UPDATE universities
+           SET name = ?, deadline = ?, notes = ?, program = ?, portal_url = ?,
+               tuition_cost = ?, financial_aid_estimate = ?
+           WHERE id = ?""",
+        (
+            request.form["name"], request.form["deadline"], request.form["notes"],
+            request.form.get("program", ""), request.form.get("portal_url", ""),
+            parse_optional_float(request.form.get("tuition_cost")),
+            parse_optional_float(request.form.get("financial_aid_estimate")),
+            university_id,
+        )
     )
     conn.commit()
     conn.close()
-    return redirect("/")
+    return redirect(f"/university/{university_id}")
+
+@app.route("/university/<int:university_id>")
+@login_required
+def university_profile(university_id):
+    conn = get_db()
+    uni = get_owned_university(conn, university_id, session["user_id"])
+    if not uni:
+        conn.close()
+        return "Not found", 404
+    tasks_by_type = {
+        task_type: dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = ? ORDER BY id",
+            (university_id, task_type)
+        ))
+        for task_type in TASK_TYPES
+    }
+    conn.close()
+
+    net_cost = None
+    if uni["tuition_cost"] is not None and uni["financial_aid_estimate"] is not None:
+        net_cost = uni["tuition_cost"] - uni["financial_aid_estimate"]
+
+    return render_template(
+        "profile.html",
+        uni=uni,
+        days_text=days_remaining_text(uni["deadline"]),
+        net_cost=net_cost,
+        tasks_by_type=tasks_by_type,
+        task_status_options=TASK_STATUS_OPTIONS,
+    )
+
+@app.route("/tasks/add/<int:university_id>/<task_type>", methods=["POST"])
+@login_required
+def add_task(university_id, task_type):
+    conn = get_db()
+    if not get_owned_university(conn, university_id, session["user_id"]):
+        conn.close()
+        return "Not found", 404
+    if task_type not in TASK_TYPES:
+        conn.close()
+        return "Invalid task type", 400
+    conn.execute(
+        """INSERT INTO tasks
+           (university_id, task_type, title, status, due_date, prompt, recommender_name, recommender_email)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            university_id, task_type,
+            request.form.get("title", "").strip(),
+            TASK_STATUS_OPTIONS[task_type][0],
+            request.form.get("due_date") or None,
+            request.form.get("prompt") or None,
+            request.form.get("recommender_name") or None,
+            request.form.get("recommender_email") or None,
+        )
+    )
+    conn.commit()
+    conn.close()
+    return redirect(f"/university/{university_id}")
+
+@app.route("/tasks/update/<int:task_id>", methods=["POST"])
+@login_required
+def update_task(task_id):
+    conn = get_db()
+    task = get_owned_task(conn, task_id, session["user_id"])
+    if not task:
+        conn.close()
+        return "Not found", 404
+    word_count = request.form.get("word_count") or None
+    conn.execute(
+        "UPDATE tasks SET status = ?, notes = ?, word_count = ? WHERE id = ?",
+        (
+            request.form.get("status", task["status"]),
+            request.form.get("notes", task["notes"]),
+            int(word_count) if word_count else None,
+            task_id,
+        )
+    )
+    conn.commit()
+    conn.close()
+    return redirect(f"/university/{task['university_id']}")
+
+@app.route("/tasks/delete/<int:task_id>", methods=["POST"])
+@login_required
+def delete_task(task_id):
+    conn = get_db()
+    task = get_owned_task(conn, task_id, session["user_id"])
+    if not task:
+        conn.close()
+        return "Not found", 404
+    university_id = task["university_id"]
+    conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    conn.commit()
+    conn.close()
+    return redirect(f"/university/{university_id}")
 
 @app.route("/delete/<int:university_id>", methods=["POST"])
 @login_required

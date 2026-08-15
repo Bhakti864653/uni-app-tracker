@@ -121,6 +121,7 @@
                         <button type="submit" class="btn-secondary">Update</button>
                     </form>
                     <div class="card-actions">
+                        <a href="/university/{{ uni.id }}" class="edit-link">Profile</a>
                         <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
                         <form action="/delete/{{ uni.id }}" method="POST" class="inline-form"
                               onsubmit="return confirm('Delete {{ uni.name }}? This cannot be undone.');">
