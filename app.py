@@ -116,6 +116,7 @@ def send_email_message(subject, body):
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
             "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (compatible; uni-app-tracker/1.0)",
         },
     )
     urllib.request.urlopen(request_obj, timeout=15)
