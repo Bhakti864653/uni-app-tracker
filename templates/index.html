@@ -42,9 +42,14 @@
                     <a href="/checklist/toggle/{{ item.id }}" class="checklist-item {% if item.done %}checked{% endif %}">
                         {% if item.done %}[x]{% else %}[ ]{% endif %} {{ item.task }}
                     </a>
+                    <a href="/checklist/delete/{{ item.id }}" class="checklist-delete">&times;</a>
                 </li>
                 {% endfor %}
             </ul>
+            <form action="/checklist/add/{{ uni.id }}" method="POST" class="add-task-form">
+                <input type="text" name="task" placeholder="Add a task (e.g. Interview)" required>
+                <button type="submit">+</button>
+            </form>
         </li>
         {% endfor %}
     </ul>

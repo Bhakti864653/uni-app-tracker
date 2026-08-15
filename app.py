@@ -156,6 +156,27 @@ def toggle_checklist_item(item_id):
     conn.close()
     return redirect("/")
 
+@app.route("/checklist/add/<int:university_id>", methods=["POST"])
+@login_required
+def add_checklist_item(university_id):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO checklist_items (university_id, task) VALUES (?, ?)",
+        (university_id, request.form["task"])
+    )
+    conn.commit()
+    conn.close()
+    return redirect("/")
+
+@app.route("/checklist/delete/<int:item_id>")
+@login_required
+def delete_checklist_item(item_id):
+    conn = get_db()
+    conn.execute("DELETE FROM checklist_items WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    return redirect("/")
+
 @app.route("/edit/<int:university_id>")
 @login_required
 def edit_form(university_id):
