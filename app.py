@@ -1,11 +1,26 @@
-from flask import Flask, request, redirect, render_template
+from flask import Flask, request, redirect, render_template, session
+from functools import wraps
+from dotenv import load_dotenv
 import sqlite3
+import os
 from datetime import date
 
+load_dotenv()
+
 app = Flask(__name__)
+app.secret_key = os.environ["SECRET_KEY"]
+LOGIN_PASSWORD = os.environ["LOGIN_PASSWORD"]
 
 DEFAULT_CHECKLIST_TASKS = ["Essay", "Recommendation Letters", "Transcript"]
 STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
+
+def login_required(view_function):
+    @wraps(view_function)
+    def wrapper(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect("/login")
+        return view_function(*args, **kwargs)
+    return wrapper
 
 def get_db():
     conn = sqlite3.connect("universities.db")
@@ -60,7 +75,23 @@ def days_remaining_text(deadline_str):
     else:
         return f"{days_left} days left"
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        if request.form["password"] == LOGIN_PASSWORD:
+            session["logged_in"] = True
+            return redirect("/")
+        error = "Incorrect password"
+    return render_template("login.html", error=error)
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    return redirect("/login")
+
 @app.route("/")
+@login_required
 def home():
     conn = get_db()
     rows = conn.execute("SELECT * FROM universities ORDER BY deadline ASC").fetchall()
@@ -83,6 +114,7 @@ def home():
     return render_template("index.html", universities=universities, status_options=STATUS_OPTIONS)
 
 @app.route("/add", methods=["POST"])
+@login_required
 def add():
     conn = get_db()
     add_university(conn, request.form["name"], request.form["deadline"])
@@ -91,6 +123,7 @@ def add():
     return redirect("/")
 
 @app.route("/status/<int:university_id>", methods=["POST"])
+@login_required
 def update_status(university_id):
     conn = get_db()
     conn.execute(
@@ -102,6 +135,7 @@ def update_status(university_id):
     return redirect("/")
 
 @app.route("/checklist/toggle/<int:item_id>")
+@login_required
 def toggle_checklist_item(item_id):
     conn = get_db()
     item = conn.execute("SELECT done FROM checklist_items WHERE id = ?", (item_id,)).fetchone()
@@ -112,6 +146,7 @@ def toggle_checklist_item(item_id):
     return redirect("/")
 
 @app.route("/edit/<int:university_id>")
+@login_required
 def edit_form(university_id):
     conn = get_db()
     uni = conn.execute("SELECT * FROM universities WHERE id = ?", (university_id,)).fetchone()
@@ -119,6 +154,7 @@ def edit_form(university_id):
     return render_template("edit.html", uni=uni)
 
 @app.route("/edit/<int:university_id>", methods=["POST"])
+@login_required
 def edit_submit(university_id):
     conn = get_db()
     conn.execute(
@@ -130,6 +166,7 @@ def edit_submit(university_id):
     return redirect("/")
 
 @app.route("/delete/<int:university_id>")
+@login_required
 def delete(university_id):
     conn = get_db()
     conn.execute("DELETE FROM checklist_items WHERE university_id = ?", (university_id,))

@@ -11,6 +11,21 @@ h1 {
     text-align: center;
 }
 
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.logout-link {
+    position: absolute;
+    right: 0;
+    color: #636e72;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
 .uni-list {
     list-style: none;
     padding: 0;

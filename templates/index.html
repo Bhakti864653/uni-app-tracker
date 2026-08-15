@@ -5,7 +5,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>My University Applications</h1>
+    <div class="top-bar">
+        <h1>My University Applications</h1>
+        <a href="/logout" class="logout-link">Log out</a>
+    </div>
 
     <ul class="uni-list">
         {% for uni in universities %}
