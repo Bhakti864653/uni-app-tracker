@@ -10,6 +10,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 LOGIN_PASSWORD = os.environ["LOGIN_PASSWORD"]
+DB_PATH = os.environ.get("DATABASE_PATH", "universities.db")
 
 DEFAULT_CHECKLIST_TASKS = ["Essay", "Recommendation Letters", "Transcript"]
 STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
@@ -23,7 +24,7 @@ def login_required(view_function):
     return wrapper
 
 def get_db():
-    conn = sqlite3.connect("universities.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 

@@ -7,10 +7,14 @@ A small web app I built to track my own university applications — deadlines, s
 
 ## Features
 
-- Add universities with a name and application deadline
+- Add, edit, and delete universities with a name and application deadline
 - See all applications sorted by soonest deadline, with days remaining calculated automatically
 - Track status per application: Not Started, In Progress, Submitted
-- Delete applications
+- Per-university checklist (essay, recommendation letters, transcript, plus your own custom tasks)
+- Progress bar showing % of checklist complete
+- Free-text notes per university
+- Stats dashboard summarizing status counts and the nearest deadline
+- Password-protected login
 - Data is stored persistently in a SQLite database
 
 ## Tech stack
@@ -18,6 +22,8 @@ A small web app I built to track my own university applications — deadlines, s
 - **Backend:** Python, Flask
 - **Database:** SQLite
 - **Frontend:** HTML/CSS with Jinja templates
+- **Auth:** Flask sessions with a password stored in an environment variable
+- **Tests:** pytest with Flask's test client
 
 ## Running it locally
 
@@ -25,10 +31,24 @@ A small web app I built to track my own university applications — deadlines, s
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+Create a `.env` file (see `.env.example`) with your own `SECRET_KEY` and `LOGIN_PASSWORD`, then:
+
+```
 python app.py
 ```
 
 Then open `http://127.0.0.1:5000` in your browser.
+
+## Running the tests
+
+```
+pip install -r requirements-dev.txt
+pytest -v
+```
+
+Tests run against a separate temporary database, so they never touch your real data.
 
 ## What I learned building this
 
