@@ -598,6 +598,93 @@ h2 {
     color: var(--text);
 }
 
+/* Pipeline board */
+.pipeline-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.pipeline-column h2 {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pipeline-count {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 1px 9px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.pipeline-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+}
+
+.pipeline-card-name {
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.pipeline-card-name:hover {
+    text-decoration: underline;
+}
+
+.pipeline-move-btn {
+    width: 100%;
+    margin-top: 8px;
+    font-size: 0.8rem;
+}
+
+/* Analytics page */
+.analytics-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.cost-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.cost-table th,
+.cost-table td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.timeline-list {
+    list-style: none;
+    font-size: 0.88rem;
+}
+
+.timeline-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.timeline-date {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    margin-right: 10px;
+}
+
 /* Login page */
 .login-page {
     max-width: 360px;
@@ -684,5 +771,10 @@ h2 {
     .add-form-row input,
     .add-form-row button {
         width: 100%;
+    }
+
+    .pipeline-board,
+    .analytics-charts {
+        grid-template-columns: 1fr;
     }
 }

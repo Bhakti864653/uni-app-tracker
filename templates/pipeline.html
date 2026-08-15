@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pipeline - University Application Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        (function () {
+            const saved = localStorage.getItem("theme");
+            if (saved) document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
+</head>
+<body>
+    <div class="page">
+        <header class="top-bar">
+            <h1>Application Pipeline</h1>
+            <div class="top-bar-actions">
+                <a href="/" class="btn-secondary">Dashboard</a>
+                <a href="/analytics" class="btn-secondary">Analytics</a>
+            </div>
+        </header>
+
+        <div class="pipeline-board">
+            {% for status in status_options %}
+            <div class="pipeline-column">
+                <h2>{{ status }} <span class="pipeline-count">{{ columns[status] | length }}</span></h2>
+
+                {% if not columns[status] %}
+                <p class="empty-state">Nothing here.</p>
+                {% endif %}
+
+                {% for uni in columns[status] %}
+                <div class="pipeline-card">
+                    <a href="/university/{{ uni.id }}" class="pipeline-card-name">{{ uni.name }}</a>
+                    <p class="task-detail">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
+                    {% if status in next_status %}
+                    <form action="/status/{{ uni.id }}" method="POST" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="status" value="{{ next_status[status] }}">
+                        <button type="submit" class="btn-secondary pipeline-move-btn">Move to {{ next_status[status] }} &rarr;</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

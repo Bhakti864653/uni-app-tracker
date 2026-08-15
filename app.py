@@ -597,6 +597,94 @@ def delete(university_id):
     conn.close()
     return redirect("/")
 
+@app.route("/pipeline")
+@login_required
+def pipeline():
+    conn = get_db()
+    rows = dictrows(conn.execute(
+        "SELECT * FROM universities WHERE user_id = ? ORDER BY deadline ASC", (session["user_id"],)
+    ))
+    conn.close()
+
+    next_status = {
+        STATUS_OPTIONS[i]: STATUS_OPTIONS[i + 1]
+        for i in range(len(STATUS_OPTIONS) - 1)
+    }
+    columns = {option: [] for option in STATUS_OPTIONS}
+    for row in rows:
+        row["days_text"] = days_remaining_text(row["deadline"])
+        columns[row["status"]].append(row)
+
+    return render_template(
+        "pipeline.html",
+        columns=columns,
+        status_options=STATUS_OPTIONS,
+        next_status=next_status,
+    )
+
+@app.route("/analytics")
+@login_required
+def analytics():
+    conn = get_db()
+    rows = dictrows(conn.execute(
+        "SELECT * FROM universities WHERE user_id = ? ORDER BY deadline ASC", (session["user_id"],)
+    ))
+
+    university_data = []
+    status_counts = {option: 0 for option in STATUS_OPTIONS}
+    timeline_events = []
+
+    for row in rows:
+        status_counts[row["status"]] += 1
+
+        checklist = dictrows(conn.execute(
+            "SELECT done FROM tasks WHERE university_id = ? AND task_type = 'checklist'", (row["id"],)
+        ))
+        done_count = sum(1 for item in checklist if item["done"])
+        progress_percent = round(100 * done_count / len(checklist)) if checklist else 0
+
+        net_cost = None
+        if row["tuition_cost"] is not None and row["financial_aid_estimate"] is not None:
+            net_cost = row["tuition_cost"] - row["financial_aid_estimate"]
+
+        university_data.append({
+            "name": row["name"],
+            "status": row["status"],
+            "deadline": row["deadline"],
+            "progress_percent": progress_percent,
+            "tuition_cost": row["tuition_cost"],
+            "financial_aid_estimate": row["financial_aid_estimate"],
+            "net_cost": net_cost,
+        })
+
+        timeline_events.append({"date": row["deadline"], "label": f"{row['name']} - application deadline"})
+        due_tasks = dictrows(conn.execute(
+            "SELECT title, task_type, due_date FROM tasks WHERE university_id = ? AND due_date IS NOT NULL",
+            (row["id"],)
+        ))
+        for task in due_tasks:
+            timeline_events.append({
+                "date": task["due_date"],
+                "label": f"{row['name']} - {task['title']} ({task['task_type']})",
+            })
+
+    conn.close()
+    timeline_events.sort(key=lambda event: event["date"])
+    has_cost_data = any(u["tuition_cost"] is not None for u in university_data)
+    cost_ranked_universities = sorted(
+        university_data, key=lambda u: u["net_cost"] if u["net_cost"] is not None else float("inf")
+    )
+
+    return render_template(
+        "analytics.html",
+        universities=university_data,
+        cost_ranked_universities=cost_ranked_universities,
+        status_counts=status_counts,
+        status_options=STATUS_OPTIONS,
+        timeline_events=timeline_events,
+        has_cost_data=has_cost_data,
+    )
+
 _db_initialized = False
 
 @app.before_request

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analytics - University Application Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            const saved = localStorage.getItem("theme");
+            if (saved) document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
+</head>
+<body>
+    <div class="page">
+        <header class="top-bar">
+            <h1>Analytics</h1>
+            <div class="top-bar-actions">
+                <a href="/" class="btn-secondary">Dashboard</a>
+                <a href="/pipeline" class="btn-secondary">Pipeline</a>
+            </div>
+        </header>
+
+        {% if not universities %}
+        <p class="empty-state">Add a university on the dashboard to see analytics here.</p>
+        {% else %}
+
+        <div class="analytics-charts">
+            <div class="task-section">
+                <h2>Status breakdown</h2>
+                <canvas id="statusChart" height="220"></canvas>
+            </div>
+            <div class="task-section">
+                <h2>Checklist progress</h2>
+                <canvas id="progressChart" height="220"></canvas>
+            </div>
+        </div>
+
+        {% if has_cost_data %}
+        <div class="task-section">
+            <h2>Cost comparison</h2>
+            <table class="cost-table">
+                <thead>
+                    <tr>
+                        <th>University</th>
+                        <th>Tuition</th>
+                        <th>Aid estimate</th>
+                        <th>Net cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for uni in cost_ranked_universities %}
+                    <tr>
+                        <td>{{ uni.name }}</td>
+                        <td>{{ "$%.0f"|format(uni.tuition_cost) if uni.tuition_cost is not none else "-" }}</td>
+                        <td>{{ "$%.0f"|format(uni.financial_aid_estimate) if uni.financial_aid_estimate is not none else "-" }}</td>
+                        <td>{{ "$%.0f"|format(uni.net_cost) if uni.net_cost is not none else "-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <div class="task-section">
+            <h2>Deadline timeline</h2>
+            {% if not timeline_events %}
+            <p class="empty-state">No dated tasks yet.</p>
+            {% endif %}
+            <ul class="timeline-list">
+                {% for event in timeline_events %}
+                <li><span class="timeline-date">{{ event.date }}</span> {{ event.label }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <script>
+            const statusData = {{ status_counts | tojson }};
+            const universities = {{ universities | tojson }};
+
+            new Chart(document.getElementById("statusChart"), {
+                type: "doughnut",
+                data: {
+                    labels: Object.keys(statusData),
+                    datasets: [{
+                        data: Object.values(statusData),
+                        backgroundColor: ["#94a3b8", "#f59e0b", "#22c55e"],
+                    }],
+                },
+                options: { plugins: { legend: { position: "bottom" } } },
+            });
+
+            new Chart(document.getElementById("progressChart"), {
+                type: "bar",
+                data: {
+                    labels: universities.map(u => u.name),
+                    datasets: [{
+                        label: "Checklist % complete",
+                        data: universities.map(u => u.progress_percent),
+                        backgroundColor: "#6366f1",
+                    }],
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } },
+                },
+            });
+        </script>
+        {% endif %}
+    </div>
+</body>
+</html>
