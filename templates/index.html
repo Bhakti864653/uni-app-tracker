@@ -53,6 +53,24 @@
             {% endif %}
         </div>
 
+        {% if suggestions %}
+        <div class="suggestions-panel">
+            <h2>What to work on next</h2>
+            <ul class="suggestions-list">
+                {% for suggestion in suggestions %}
+                <li>
+                    <a href="/university/{{ suggestion.university_id }}">{{ suggestion.text }}</a>
+                    <span class="suggestion-urgency {% if suggestion.days_left < 0 %}suggestion-overdue{% elif suggestion.days_left <= 7 %}suggestion-urgent{% endif %}">
+                        {% if suggestion.days_left < 0 %}{{ -suggestion.days_left }}d overdue
+                        {% elif suggestion.days_left == 0 %}due today
+                        {% else %}{{ suggestion.days_left }}d left{% endif %}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
         <div class="controls-bar">
             <input type="text" id="search-input" placeholder="Search universities...">
             <select id="status-filter">
@@ -80,7 +98,10 @@
                         <h2 class="uni-name">{{ uni.name }}</h2>
                         <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
                     </div>
-                    <span class="status-badge status-{{ uni.status | replace(' ', '-') | lower }}">{{ uni.status }}</span>
+                    <div class="uni-top-badges">
+                        <span class="readiness-badge {% if uni.readiness_score >= 80 %}readiness-high{% elif uni.readiness_score >= 50 %}readiness-medium{% else %}readiness-low{% endif %}" title="Readiness score">{{ uni.readiness_score }}%</span>
+                        <span class="status-badge status-{{ uni.status | replace(' ', '-') | lower }}">{{ uni.status }}</span>
+                    </div>
                 </div>
 
                 <div class="progress-track">

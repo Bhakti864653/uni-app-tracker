@@ -34,6 +34,11 @@ TASK_STATUS_OPTIONS = {
     "recommendation": ["Not Requested", "Requested", "Received"],
     "document": ["Not Started", "Requested", "Received", "Submitted"],
 }
+TASK_STATUS_PROGRESS = {
+    "essay": {"Not Started": 0, "Drafting": 33, "In Review": 66, "Final": 100},
+    "recommendation": {"Not Requested": 0, "Requested": 50, "Received": 100},
+    "document": {"Not Started": 0, "Requested": 33, "Received": 66, "Submitted": 100},
+}
 
 RATE_LIMIT_WINDOW_SECONDS = 900
 RATE_LIMIT_MAX_ATTEMPTS = 5
@@ -302,6 +307,62 @@ def days_left_int(deadline_str):
     deadline_date = date.fromisoformat(deadline_str)
     return (deadline_date - date.today()).days
 
+def compute_readiness_score(checklist, essays, recommendations, documents):
+    component_percents = []
+
+    if checklist:
+        done_count = sum(1 for item in checklist if item["done"])
+        component_percents.append(100 * done_count / len(checklist))
+
+    for task_type, tasks in (("essay", essays), ("recommendation", recommendations), ("document", documents)):
+        if tasks:
+            progress_map = TASK_STATUS_PROGRESS[task_type]
+            average = sum(progress_map.get(task["status"], 0) for task in tasks) / len(tasks)
+            component_percents.append(average)
+
+    if not component_percents:
+        return 0
+    return round(sum(component_percents) / len(component_percents))
+
+def build_suggestions(universities, limit=6):
+    suggestions = []
+    for uni in universities:
+        if uni["status"] == "Submitted":
+            continue
+        days_left = days_left_int(uni["deadline"])
+
+        for item in uni["checklist"]:
+            if not item["done"]:
+                suggestions.append({
+                    "text": f'Finish "{item["title"]}" for {uni["name"]}',
+                    "university_id": uni["id"],
+                    "days_left": days_left,
+                })
+        for essay in uni["essays"]:
+            if essay["status"] != "Final":
+                suggestions.append({
+                    "text": f'Work on essay "{essay["title"]}" for {uni["name"]} ({essay["status"]})',
+                    "university_id": uni["id"],
+                    "days_left": days_left,
+                })
+        for rec in uni["recommendations"]:
+            if rec["status"] != "Received":
+                suggestions.append({
+                    "text": f'Follow up on recommendation "{rec["title"]}" for {uni["name"]} ({rec["status"]})',
+                    "university_id": uni["id"],
+                    "days_left": days_left,
+                })
+        for document in uni["documents"]:
+            if document["status"] != "Submitted":
+                suggestions.append({
+                    "text": f'Submit "{document["title"]}" for {uni["name"]} ({document["status"]})',
+                    "university_id": uni["id"],
+                    "days_left": days_left,
+                })
+
+    suggestions.sort(key=lambda s: s["days_left"])
+    return suggestions[:limit]
+
 def days_remaining_text(deadline_str):
     days_left = days_left_int(deadline_str)
     if days_left < 0:
@@ -431,6 +492,15 @@ def home():
         checklist = dictrows(conn.execute(
             "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'checklist'", (row["id"],)
         ))
+        essays = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'essay'", (row["id"],)
+        ))
+        recommendations = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'recommendation'", (row["id"],)
+        ))
+        documents = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'document'", (row["id"],)
+        ))
 
         done_count = sum(1 for item in checklist if item["done"])
         total_count = len(checklist)
@@ -443,7 +513,11 @@ def home():
             "status": row["status"],
             "days_text": days_remaining_text(row["deadline"]),
             "checklist": checklist,
+            "essays": essays,
+            "recommendations": recommendations,
+            "documents": documents,
             "progress_percent": progress_percent,
+            "readiness_score": compute_readiness_score(checklist, essays, recommendations, documents),
             "notes": row["notes"],
         })
     conn.close()
@@ -452,6 +526,7 @@ def home():
     for uni in universities:
         status_counts[uni["status"]] += 1
     next_deadline = universities[0] if universities else None
+    suggestions = build_suggestions(universities)
 
     return render_template(
         "index.html",
@@ -459,6 +534,7 @@ def home():
         status_options=STATUS_OPTIONS,
         status_counts=status_counts,
         next_deadline=next_deadline,
+        suggestions=suggestions,
         reminder_sent=request.args.get("reminder_sent"),
         reminder_error=request.args.get("reminder_error"),
         email_configured=bool(EMAIL_ADDRESS and RESEND_API_KEY),

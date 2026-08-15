@@ -13,6 +13,7 @@
     --neutral: #71717a;
     --neutral-bg: #f0f0f2;
     --danger: #dc2626;
+    --danger-bg: #fee2e2;
     --radius: 14px;
     --radius-sm: 8px;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -27,6 +28,7 @@
     --success-bg: #14532d;
     --warning-bg: #78350f;
     --neutral-bg: #3f3f46;
+    --danger-bg: #7f1d1d;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
@@ -195,6 +197,93 @@ h2 {
     padding: 4px 10px;
     border-radius: 999px;
     white-space: nowrap;
+}
+
+.uni-top-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.readiness-badge {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.readiness-high {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.readiness-medium {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+.readiness-low {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+.suggestions-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+.suggestions-panel h2 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.suggestions-list {
+    list-style: none;
+}
+
+.suggestions-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+}
+
+.suggestions-list li:last-child {
+    border-bottom: none;
+}
+
+.suggestions-list a {
+    color: var(--text);
+    text-decoration: none;
+}
+
+.suggestions-list a:hover {
+    text-decoration: underline;
+}
+
+.suggestion-urgency {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.suggestion-urgency.suggestion-urgent {
+    color: var(--warning);
+}
+
+.suggestion-urgency.suggestion-overdue {
+    color: var(--danger);
 }
 
 .status-badge.status-not-started {
