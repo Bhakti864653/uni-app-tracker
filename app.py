@@ -111,7 +111,18 @@ def home():
         })
     conn.close()
 
-    return render_template("index.html", universities=universities, status_options=STATUS_OPTIONS)
+    status_counts = {option: 0 for option in STATUS_OPTIONS}
+    for uni in universities:
+        status_counts[uni["status"]] += 1
+    next_deadline = universities[0] if universities else None
+
+    return render_template(
+        "index.html",
+        universities=universities,
+        status_options=STATUS_OPTIONS,
+        status_counts=status_counts,
+        next_deadline=next_deadline,
+    )
 
 @app.route("/add", methods=["POST"])
 @login_required

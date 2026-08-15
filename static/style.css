@@ -26,6 +26,29 @@ h1 {
     font-size: 0.9em;
 }
 
+.stats-bar {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.stat {
+    background: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    color: #636e72;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-highlight {
+    background: #0984e3;
+    color: white;
+    font-weight: 600;
+}
+
 .uni-list {
     list-style: none;
     padding: 0;

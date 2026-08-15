@@ -10,6 +10,15 @@
         <a href="/logout" class="logout-link">Log out</a>
     </div>
 
+    <div class="stats-bar">
+        {% for option in status_options %}
+        <span class="stat">{{ status_counts[option] }} {{ option }}</span>
+        {% endfor %}
+        {% if next_deadline %}
+        <span class="stat stat-highlight">Next: {{ next_deadline.name }} ({{ next_deadline.days_text }})</span>
+        {% endif %}
+    </div>
+
     <ul class="uni-list">
         {% for uni in universities %}
         <li class="uni-card status-{{ uni.status | replace(' ', '-') | lower }}">
