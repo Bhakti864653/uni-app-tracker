@@ -96,7 +96,7 @@ def send_email_message(subject, body):
     message["Subject"] = subject
     message["From"] = EMAIL_ADDRESS
     message["To"] = EMAIL_ADDRESS
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
         server.starttls()
         server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
         server.send_message(message)
@@ -235,7 +235,7 @@ def send_reminders():
 
     try:
         send_email_message("University Application Reminders", body)
-    except smtplib.SMTPException:
+    except (smtplib.SMTPException, OSError):
         return redirect("/?reminder_error=send_failed")
 
     return redirect("/?reminder_sent=1")
@@ -267,7 +267,7 @@ def send_auto_reminder():
 
     try:
         send_email_message("University Application Deadline Reminder", body)
-    except smtplib.SMTPException:
+    except (smtplib.SMTPException, OSError):
         return "Send failed", 500
 
     return "Reminder sent", 200
