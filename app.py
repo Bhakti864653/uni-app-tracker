@@ -286,8 +286,9 @@ def send_auto_reminder():
 
     try:
         send_email_message("University Application Deadline Reminder", body)
-    except OSError:
-        return "Send failed", 500
+    except OSError as error:
+        detail = error.read().decode() if hasattr(error, "read") else str(error)
+        return f"Send failed: {detail}", 500
 
     return "Reminder sent", 200
 
