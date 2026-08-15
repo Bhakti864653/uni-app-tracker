@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>University Application Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>My University Applications</h1>
+
+    <ul class="uni-list">
+        {% for uni in universities %}
+        <li class="uni-card status-{{ uni.status | replace(' ', '-') | lower }}">
+            <div class="uni-header">
+                <span class="uni-name">{{ uni.name }}</span>
+                <span class="uni-deadline">due {{ uni.deadline }} ({{ uni.days_text }})</span>
+            </div>
+            <form action="/status/{{ uni.id }}" method="POST" class="status-form">
+                <select name="status">
+                    {% for option in status_options %}
+                    <option value="{{ option }}" {% if option == uni.status %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Update</button>
+                <a href="/delete/{{ uni.id }}" class="delete-link">Delete</a>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <form action="/add" method="POST" class="add-form">
+        <h2>Add a University</h2>
+        <input type="text" name="name" placeholder="University name" required>
+        <input type="date" name="deadline" required>
+        <button type="submit">Add</button>
+    </form>
+</body>
+</html>
