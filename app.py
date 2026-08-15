@@ -10,7 +10,7 @@ import json
 import time
 import urllib.request
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 
 load_dotenv()
 
@@ -25,7 +25,6 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 REMINDER_TOKEN = os.environ.get("REMINDER_TOKEN")
 RESET_DEMO_TOKEN = os.environ.get("RESET_DEMO_TOKEN")
 AUTO_REMINDER_DAYS = 7
-DEMO_EMAIL = "demo@universitytracker.app"
 
 DEFAULT_CHECKLIST_TASKS = ["Essay", "Recommendation Letters", "Transcript"]
 STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
@@ -119,6 +118,24 @@ def init_db():
             FOREIGN KEY (university_id) REFERENCES universities (id)
         )
     """)
+
+    existing_user_columns = [row["name"] for row in dictrows(conn.execute("PRAGMA table_info(users)"))]
+    if "is_demo" not in existing_user_columns:
+        conn.execute("ALTER TABLE users ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0")
+
+    # One-time cleanup: remove the old single shared demo account from
+    # before per-visitor demo accounts existed.
+    legacy_demo_user = dictrow(conn.execute(
+        "SELECT id FROM users WHERE email = 'demo@universitytracker.app'"
+    ))
+    if legacy_demo_user:
+        legacy_university_ids = [row["id"] for row in dictrows(conn.execute(
+            "SELECT id FROM universities WHERE user_id = ?", (legacy_demo_user["id"],)
+        ))]
+        for university_id in legacy_university_ids:
+            conn.execute("DELETE FROM tasks WHERE university_id = ?", (university_id,))
+        conn.execute("DELETE FROM universities WHERE user_id = ?", (legacy_demo_user["id"],))
+        conn.execute("DELETE FROM users WHERE id = ?", (legacy_demo_user["id"],))
 
     existing_uni_columns = [row["name"] for row in dictrows(conn.execute("PRAGMA table_info(universities)"))]
     if "user_id" not in existing_uni_columns:
@@ -256,27 +273,30 @@ def seed_demo_data(conn, user_id):
             (new_id, document["title"], document["status"])
         )
 
-def get_or_create_demo_user(conn):
-    demo_user = dictrow(conn.execute("SELECT id FROM users WHERE email = ?", (DEMO_EMAIL,)))
-    if demo_user:
-        return demo_user["id"]
+def create_demo_user(conn):
+    demo_email = f"demo-{secrets.token_hex(6)}@universitytracker.app"
     cursor = conn.execute(
-        "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
-        (DEMO_EMAIL, generate_password_hash(secrets.token_hex(16)), date.today().isoformat())
+        "INSERT INTO users (email, password_hash, created_at, is_demo) VALUES (?, ?, ?, 1)",
+        (demo_email, generate_password_hash(secrets.token_hex(16)), datetime.now(timezone.utc).isoformat())
     )
     user_id = cursor.lastrowid
     seed_demo_data(conn, user_id)
     return user_id
 
-def reset_demo_data(conn):
-    user_id = get_or_create_demo_user(conn)
-    old_university_ids = [row["id"] for row in dictrows(conn.execute(
-        "SELECT id FROM universities WHERE user_id = ?", (user_id,)
-    ))]
-    for university_id in old_university_ids:
-        conn.execute("DELETE FROM tasks WHERE university_id = ?", (university_id,))
-    conn.execute("DELETE FROM universities WHERE user_id = ?", (user_id,))
-    seed_demo_data(conn, user_id)
+def cleanup_expired_demo_users(conn, max_age_hours=24):
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=max_age_hours)).isoformat()
+    expired_users = dictrows(conn.execute(
+        "SELECT id FROM users WHERE is_demo = 1 AND created_at < ?", (cutoff,)
+    ))
+    for user in expired_users:
+        university_ids = [row["id"] for row in dictrows(conn.execute(
+            "SELECT id FROM universities WHERE user_id = ?", (user["id"],)
+        ))]
+        for university_id in university_ids:
+            conn.execute("DELETE FROM tasks WHERE university_id = ?", (university_id,))
+        conn.execute("DELETE FROM universities WHERE user_id = ?", (user["id"],))
+        conn.execute("DELETE FROM users WHERE id = ?", (user["id"],))
+    return len(expired_users)
 
 def days_left_int(deadline_str):
     deadline_date = date.fromisoformat(deadline_str)
@@ -389,7 +409,7 @@ def logout():
 @app.route("/demo-login")
 def demo_login():
     conn = get_db()
-    demo_user_id = get_or_create_demo_user(conn)
+    demo_user_id = create_demo_user(conn)
     conn.commit()
     conn.close()
     session.clear()
@@ -539,15 +559,15 @@ def send_reminders():
 
     return redirect("/?reminder_sent=1")
 
-@app.route("/demo/reset")
-def reset_demo():
+@app.route("/demo/cleanup")
+def cleanup_demo():
     if not RESET_DEMO_TOKEN or not secrets.compare_digest(request.args.get("token", ""), RESET_DEMO_TOKEN):
         return "Forbidden", 403
     conn = get_db()
-    reset_demo_data(conn)
+    removed_count = cleanup_expired_demo_users(conn)
     conn.commit()
     conn.close()
-    return "Demo reset", 200
+    return f"Cleaned up {removed_count} expired demo account(s)", 200
 
 @app.route("/reminders/auto")
 def send_auto_reminder():

@@ -1,0 +1,16 @@
+name: Demo account cleanup
+
+on:
+  schedule:
+    # Every 6 hours - deletes any temporary per-visitor demo accounts
+    # (and their data) older than 24 hours, so they don't pile up.
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  cleanup-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the demo cleanup endpoint
+        run: |
+          curl -sS "https://uni-app-tracker-b70h.onrender.com/demo/cleanup?token=${{ secrets.RESET_DEMO_TOKEN }}"
