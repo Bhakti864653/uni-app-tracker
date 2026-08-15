@@ -23,6 +23,15 @@
                 <button type="submit">Update</button>
                 <a href="/delete/{{ uni.id }}" class="delete-link">Delete</a>
             </form>
+            <ul class="checklist">
+                {% for item in uni.checklist %}
+                <li>
+                    <a href="/checklist/toggle/{{ item.id }}" class="checklist-item {% if item.done %}checked{% endif %}">
+                        {% if item.done %}[x]{% else %}[ ]{% endif %} {{ item.task }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
         </li>
         {% endfor %}
     </ul>

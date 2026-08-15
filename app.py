@@ -4,6 +4,9 @@ from datetime import date
 
 app = Flask(__name__)
 
+DEFAULT_CHECKLIST_TASKS = ["Essay", "Recommendation Letters", "Transcript"]
+STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
+
 def get_db():
     conn = sqlite3.connect("universities.db")
     conn.row_factory = sqlite3.Row
@@ -19,14 +22,33 @@ def init_db():
             status TEXT NOT NULL DEFAULT 'Not Started'
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS checklist_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            university_id INTEGER NOT NULL,
+            task TEXT NOT NULL,
+            done INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (university_id) REFERENCES universities (id)
+        )
+    """)
     existing = conn.execute("SELECT COUNT(*) FROM universities").fetchone()[0]
     if existing == 0:
-        conn.execute("INSERT INTO universities (name, deadline) VALUES (?, ?)", ("Stanford", "2026-11-01"))
-        conn.execute("INSERT INTO universities (name, deadline) VALUES (?, ?)", ("UC Berkeley", "2026-11-30"))
+        add_university(conn, "Stanford", "2026-11-01")
+        add_university(conn, "UC Berkeley", "2026-11-30")
     conn.commit()
     conn.close()
 
-STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
+def add_university(conn, name, deadline):
+    cursor = conn.execute(
+        "INSERT INTO universities (name, deadline) VALUES (?, ?)",
+        (name, deadline)
+    )
+    new_id = cursor.lastrowid
+    for task in DEFAULT_CHECKLIST_TASKS:
+        conn.execute(
+            "INSERT INTO checklist_items (university_id, task) VALUES (?, ?)",
+            (new_id, task)
+        )
 
 def days_remaining_text(deadline_str):
     deadline_date = date.fromisoformat(deadline_str)
@@ -42,27 +64,28 @@ def days_remaining_text(deadline_str):
 def home():
     conn = get_db()
     rows = conn.execute("SELECT * FROM universities ORDER BY deadline ASC").fetchall()
-    conn.close()
 
     universities = []
     for row in rows:
+        checklist = conn.execute(
+            "SELECT * FROM checklist_items WHERE university_id = ?", (row["id"],)
+        ).fetchall()
         universities.append({
             "id": row["id"],
             "name": row["name"],
             "deadline": row["deadline"],
             "status": row["status"],
             "days_text": days_remaining_text(row["deadline"]),
+            "checklist": checklist,
         })
+    conn.close()
 
     return render_template("index.html", universities=universities, status_options=STATUS_OPTIONS)
 
 @app.route("/add", methods=["POST"])
 def add():
     conn = get_db()
-    conn.execute(
-        "INSERT INTO universities (name, deadline) VALUES (?, ?)",
-        (request.form["name"], request.form["deadline"])
-    )
+    add_university(conn, request.form["name"], request.form["deadline"])
     conn.commit()
     conn.close()
     return redirect("/")
@@ -78,9 +101,20 @@ def update_status(university_id):
     conn.close()
     return redirect("/")
 
+@app.route("/checklist/toggle/<int:item_id>")
+def toggle_checklist_item(item_id):
+    conn = get_db()
+    item = conn.execute("SELECT done FROM checklist_items WHERE id = ?", (item_id,)).fetchone()
+    new_done = 0 if item["done"] else 1
+    conn.execute("UPDATE checklist_items SET done = ? WHERE id = ?", (new_done, item_id))
+    conn.commit()
+    conn.close()
+    return redirect("/")
+
 @app.route("/delete/<int:university_id>")
 def delete(university_id):
     conn = get_db()
+    conn.execute("DELETE FROM checklist_items WHERE university_id = ?", (university_id,))
     conn.execute("DELETE FROM universities WHERE id = ?", (university_id,))
     conn.commit()
     conn.close()

@@ -63,6 +63,27 @@ h1 {
     font-size: 0.9em;
 }
 
+.checklist {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+}
+
+.checklist-item {
+    text-decoration: none;
+    color: #636e72;
+    font-size: 0.9em;
+    font-family: monospace;
+}
+
+.checklist-item.checked {
+    color: #00b894;
+    text-decoration: line-through;
+}
+
 .add-form {
     background: white;
     padding: 16px;
