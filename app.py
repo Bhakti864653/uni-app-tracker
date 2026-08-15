@@ -14,6 +14,8 @@ app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 LOGIN_PASSWORD = os.environ["LOGIN_PASSWORD"]
 DB_PATH = os.environ.get("DATABASE_PATH", "universities.db")
+TURSO_DATABASE_URL = os.environ.get("TURSO_DATABASE_URL")
+TURSO_AUTH_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
 EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")
 REMINDER_TOKEN = os.environ.get("REMINDER_TOKEN")
@@ -31,9 +33,19 @@ def login_required(view_function):
     return wrapper
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    if TURSO_DATABASE_URL and TURSO_AUTH_TOKEN:
+        import libsql
+        return libsql.connect(database=TURSO_DATABASE_URL, auth_token=TURSO_AUTH_TOKEN)
+    return sqlite3.connect(DB_PATH)
+
+def dictrows(cursor):
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+def dictrow(cursor):
+    columns = [col[0] for col in cursor.description]
+    row = cursor.fetchone()
+    return dict(zip(columns, row)) if row else None
 
 def init_db():
     conn = get_db()
@@ -55,7 +67,7 @@ def init_db():
         )
     """)
 
-    existing_columns = [row["name"] for row in conn.execute("PRAGMA table_info(universities)").fetchall()]
+    existing_columns = [row["name"] for row in dictrows(conn.execute("PRAGMA table_info(universities)"))]
     if "notes" not in existing_columns:
         conn.execute("ALTER TABLE universities ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
 
@@ -120,13 +132,13 @@ def logout():
 @login_required
 def home():
     conn = get_db()
-    rows = conn.execute("SELECT * FROM universities ORDER BY deadline ASC").fetchall()
+    rows = dictrows(conn.execute("SELECT * FROM universities ORDER BY deadline ASC"))
 
     universities = []
     for row in rows:
-        checklist = conn.execute(
+        checklist = dictrows(conn.execute(
             "SELECT * FROM checklist_items WHERE university_id = ?", (row["id"],)
-        ).fetchall()
+        ))
 
         done_count = sum(1 for item in checklist if item["done"])
         total_count = len(checklist)
@@ -185,7 +197,7 @@ def update_status(university_id):
 @login_required
 def toggle_checklist_item(item_id):
     conn = get_db()
-    item = conn.execute("SELECT done FROM checklist_items WHERE id = ?", (item_id,)).fetchone()
+    item = dictrow(conn.execute("SELECT done FROM checklist_items WHERE id = ?", (item_id,)))
     new_done = 0 if item["done"] else 1
     conn.execute("UPDATE checklist_items SET done = ? WHERE id = ?", (new_done, item_id))
     conn.commit()
@@ -220,7 +232,7 @@ def send_reminders():
         return redirect("/?reminder_error=not_configured")
 
     conn = get_db()
-    rows = conn.execute("SELECT * FROM universities ORDER BY deadline ASC").fetchall()
+    rows = dictrows(conn.execute("SELECT * FROM universities ORDER BY deadline ASC"))
     conn.close()
 
     pending = [row for row in rows if row["status"] != "Submitted"]
@@ -249,7 +261,7 @@ def send_auto_reminder():
         return "Email not configured", 200
 
     conn = get_db()
-    rows = conn.execute("SELECT * FROM universities ORDER BY deadline ASC").fetchall()
+    rows = dictrows(conn.execute("SELECT * FROM universities ORDER BY deadline ASC"))
     conn.close()
 
     urgent = [
@@ -276,7 +288,7 @@ def send_auto_reminder():
 @login_required
 def edit_form(university_id):
     conn = get_db()
-    uni = conn.execute("SELECT * FROM universities WHERE id = ?", (university_id,)).fetchone()
+    uni = dictrow(conn.execute("SELECT * FROM universities WHERE id = ?", (university_id,)))
     conn.close()
     return render_template("edit.html", uni=uni)
 
