@@ -88,6 +88,48 @@ h1 {
     color: #636e72;
 }
 
+.progress-track {
+    background: #dfe6e9;
+    border-radius: 6px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.progress-fill {
+    background: #00b894;
+    height: 100%;
+}
+
+.progress-label {
+    display: block;
+    font-size: 0.8em;
+    color: #636e72;
+    font-weight: 400;
+    margin-bottom: 8px;
+}
+
+.uni-notes {
+    font-size: 0.9em;
+    color: #636e72;
+    background: #f5f6fa;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin: 4px 0 10px;
+    white-space: pre-wrap;
+}
+
+.add-form textarea {
+    width: 100%;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #dfe6e9;
+    font-family: inherit;
+    font-size: 0.95em;
+    box-sizing: border-box;
+    margin-top: 8px;
+}
+
 .status-form {
     display: flex;
     align-items: center;

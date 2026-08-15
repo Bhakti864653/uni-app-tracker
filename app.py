@@ -46,6 +46,11 @@ def init_db():
             FOREIGN KEY (university_id) REFERENCES universities (id)
         )
     """)
+
+    existing_columns = [row["name"] for row in conn.execute("PRAGMA table_info(universities)").fetchall()]
+    if "notes" not in existing_columns:
+        conn.execute("ALTER TABLE universities ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
+
     existing = conn.execute("SELECT COUNT(*) FROM universities").fetchone()[0]
     if existing == 0:
         add_university(conn, "Stanford", "2026-11-01")
@@ -101,6 +106,11 @@ def home():
         checklist = conn.execute(
             "SELECT * FROM checklist_items WHERE university_id = ?", (row["id"],)
         ).fetchall()
+
+        done_count = sum(1 for item in checklist if item["done"])
+        total_count = len(checklist)
+        progress_percent = round(100 * done_count / total_count) if total_count else 0
+
         universities.append({
             "id": row["id"],
             "name": row["name"],
@@ -108,6 +118,8 @@ def home():
             "status": row["status"],
             "days_text": days_remaining_text(row["deadline"]),
             "checklist": checklist,
+            "progress_percent": progress_percent,
+            "notes": row["notes"],
         })
     conn.close()
 
@@ -190,8 +202,8 @@ def edit_form(university_id):
 def edit_submit(university_id):
     conn = get_db()
     conn.execute(
-        "UPDATE universities SET name = ?, deadline = ? WHERE id = ?",
-        (request.form["name"], request.form["deadline"], university_id)
+        "UPDATE universities SET name = ?, deadline = ?, notes = ? WHERE id = ?",
+        (request.form["name"], request.form["deadline"], request.form["notes"], university_id)
     )
     conn.commit()
     conn.close()

@@ -26,6 +26,13 @@
                 <span class="uni-name">{{ uni.name }}</span>
                 <span class="uni-deadline">due {{ uni.deadline }} ({{ uni.days_text }})</span>
             </div>
+            <div class="progress-track">
+                <div class="progress-fill" style="width: {{ uni.progress_percent }}%"></div>
+            </div>
+            <span class="progress-label">{{ uni.progress_percent }}% of checklist complete</span>
+            {% if uni.notes %}
+            <p class="uni-notes">{{ uni.notes }}</p>
+            {% endif %}
             <form action="/status/{{ uni.id }}" method="POST" class="status-form">
                 <select name="status">
                     {% for option in status_options %}
@@ -34,7 +41,8 @@
                 </select>
                 <button type="submit">Update</button>
                 <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
-                <a href="/delete/{{ uni.id }}" class="delete-link">Delete</a>
+                <a href="/delete/{{ uni.id }}" class="delete-link"
+                   onclick="return confirm('Delete {{ uni.name }}? This cannot be undone.');">Delete</a>
             </form>
             <ul class="checklist">
                 {% for item in uni.checklist %}

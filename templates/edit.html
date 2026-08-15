@@ -10,6 +10,7 @@
     <form action="/edit/{{ uni.id }}" method="POST" class="add-form">
         <input type="text" name="name" value="{{ uni.name }}" required>
         <input type="date" name="deadline" value="{{ uni.deadline }}" required>
+        <textarea name="notes" placeholder="Notes (optional)" rows="4">{{ uni.notes }}</textarea>
         <button type="submit">Save</button>
         <a href="/">Cancel</a>
     </form>
