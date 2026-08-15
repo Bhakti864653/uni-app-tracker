@@ -31,6 +31,9 @@
             </div>
         </header>
 
+        {% if is_demo %}
+        <p class="banner banner-demo">You're viewing a shared demo account with sample data - feel free to explore and edit anything. It resets automatically every day.</p>
+        {% endif %}
         {% if reminder_sent %}
         <p class="banner banner-success">Reminder email sent!</p>
         {% endif %}

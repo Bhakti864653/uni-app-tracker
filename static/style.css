@@ -425,6 +425,11 @@ h2 {
     color: var(--warning);
 }
 
+.banner-demo {
+    background: var(--accent);
+    color: white;
+}
+
 .card-actions {
     display: flex;
     gap: 14px;

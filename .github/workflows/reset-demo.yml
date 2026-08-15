@@ -1,0 +1,17 @@
+name: Daily demo account reset
+
+on:
+  schedule:
+    # 07:00 UTC - resets the shared demo account back to its original
+    # sample data each day, so visitors clicking around doesn't leave
+    # it in a messy state.
+    - cron: "0 7 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  reset-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the demo reset endpoint
+        run: |
+          curl -sS "https://uni-app-tracker-b70h.onrender.com/demo/reset?token=${{ secrets.RESET_DEMO_TOKEN }}"
