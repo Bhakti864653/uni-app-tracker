@@ -18,6 +18,7 @@
         <h1 style="margin-bottom: 20px;">Edit University</h1>
 
         <form action="/edit/{{ uni.id }}" method="POST" class="add-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="name" value="{{ uni.name }}" required style="width: 100%; margin-bottom: 10px;">
             <input type="date" name="deadline" value="{{ uni.deadline }}" required style="width: 100%;">
             <textarea name="notes" placeholder="Notes (optional)" rows="4">{{ uni.notes }}</textarea>

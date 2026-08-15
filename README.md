@@ -17,15 +17,15 @@ A small web app I built to track my own university applications — deadlines, s
 - Search, filter by status, and sort the list
 - Dark mode
 - One-click email reminder summarizing pending deadlines (optional, requires your own email credentials)
-- Password-protected login
-- Data is stored persistently in a SQLite database
+- User accounts (signup/login) with hashed passwords, CSRF protection, and per-user data isolation
+- Data is stored persistently and privately per account
 
 ## Tech stack
 
 - **Backend:** Python, Flask
-- **Database:** SQLite
+- **Database:** SQLite locally, [Turso](https://turso.tech) (hosted, SQLite-compatible) in production
 - **Frontend:** HTML/CSS with Jinja templates
-- **Auth:** Flask sessions with a password stored in an environment variable
+- **Auth:** Flask sessions, hashed passwords (werkzeug), hand-rolled CSRF tokens and login rate limiting
 - **Tests:** pytest with Flask's test client
 
 ## Running it locally
@@ -36,13 +36,13 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Create a `.env` file (see `.env.example`) with your own `SECRET_KEY` and `LOGIN_PASSWORD`. To enable the "Email reminders" button, also add `EMAIL_ADDRESS` and a [Resend](https://resend.com) `RESEND_API_KEY` - otherwise leave them out and the button just won't show up. Then:
+Create a `.env` file (see `.env.example`) with your own `SECRET_KEY`. To enable the "Email reminders" button, also add `EMAIL_ADDRESS` and a [Resend](https://resend.com) `RESEND_API_KEY` - otherwise leave them out and the button just won't show up. Then:
 
 ```
 python app.py
 ```
 
-Then open `http://127.0.0.1:5000` in your browser.
+Open `http://127.0.0.1:5000` in your browser and sign up for an account.
 
 ## Running the tests
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login - University Application Tracker</title>
+    <title>Sign Up - University Application Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,18 +17,19 @@
     <div class="login-page">
         <h1>University Application Tracker</h1>
 
-        <form action="/login" method="POST" class="add-form">
+        <form action="/signup" method="POST" class="add-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="email" name="email" placeholder="Email" required autofocus style="width: 100%; margin-bottom: 10px;">
-            <input type="password" name="password" placeholder="Password" required style="width: 100%; margin-bottom: 10px;">
-            <button type="submit" class="btn-primary" style="width: 100%;">Log In</button>
+            <input type="password" name="password" placeholder="Password (min 8 characters)" required style="width: 100%; margin-bottom: 10px;">
+            <input type="password" name="confirm_password" placeholder="Confirm password" required style="width: 100%; margin-bottom: 10px;">
+            <button type="submit" class="btn-primary" style="width: 100%;">Sign Up</button>
         </form>
 
         {% if error %}
         <p class="login-error">{{ error }}</p>
         {% endif %}
 
-        <p class="auth-switch">Don't have an account? <a href="/signup">Sign up</a></p>
+        <p class="auth-switch">Already have an account? <a href="/login">Log in</a></p>
     </div>
 </body>
 </html>

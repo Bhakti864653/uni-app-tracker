@@ -22,7 +22,10 @@
                 {% if email_configured %}
                 <a href="/reminders/send" class="btn-secondary">Email reminders</a>
                 {% endif %}
-                <a href="/logout" class="logout-link">Log out</a>
+                <form action="/logout" method="POST" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="logout-link link-button">Log out</button>
+                </form>
             </div>
         </header>
 
@@ -60,6 +63,10 @@
             </select>
         </div>
 
+        {% if not universities %}
+        <p class="empty-state">No universities yet — add your first one below to get started.</p>
+        {% endif %}
+
         <ul class="uni-list">
             {% for uni in universities %}
             <li class="uni-card" data-name="{{ uni.name }}" data-status="{{ uni.status }}" data-deadline="{{ uni.deadline }}">
@@ -83,21 +90,29 @@
                 <ul class="checklist">
                     {% for item in uni.checklist %}
                     <li class="checklist-row">
-                        <a href="/checklist/toggle/{{ item.id }}" class="checklist-item {% if item.done %}checked{% endif %}">
-                            <span class="checkbox">{% if item.done %}&#10003;{% endif %}</span>
-                            {{ item.task }}
-                        </a>
-                        <a href="/checklist/delete/{{ item.id }}" class="checklist-delete" title="Remove task">&times;</a>
+                        <form action="/checklist/toggle/{{ item.id }}" method="POST" class="inline-form checklist-item-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="checklist-item link-button {% if item.done %}checked{% endif %}">
+                                <span class="checkbox">{% if item.done %}&#10003;{% endif %}</span>
+                                {{ item.title }}
+                            </button>
+                        </form>
+                        <form action="/checklist/delete/{{ item.id }}" method="POST" class="inline-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="checklist-delete link-button" title="Remove task">&times;</button>
+                        </form>
                     </li>
                     {% endfor %}
                 </ul>
                 <form action="/checklist/add/{{ uni.id }}" method="POST" class="add-task-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="text" name="task" placeholder="Add a task">
                     <button type="submit" class="btn-icon">+</button>
                 </form>
 
                 <div class="card-footer">
                     <form action="/status/{{ uni.id }}" method="POST" class="status-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <select name="status">
                             {% for option in status_options %}
                             <option value="{{ option }}" {% if option == uni.status %}selected{% endif %}>{{ option }}</option>
@@ -107,8 +122,11 @@
                     </form>
                     <div class="card-actions">
                         <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
-                        <a href="/delete/{{ uni.id }}" class="delete-link"
-                           onclick="return confirm('Delete {{ uni.name }}? This cannot be undone.');">Delete</a>
+                        <form action="/delete/{{ uni.id }}" method="POST" class="inline-form"
+                              onsubmit="return confirm('Delete {{ uni.name }}? This cannot be undone.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="delete-link link-button">Delete</button>
+                        </form>
                     </div>
                 </div>
             </li>
@@ -116,6 +134,7 @@
         </ul>
 
         <form action="/add" method="POST" class="add-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <h2>Add a University</h2>
             <div class="add-form-row">
                 <input type="text" name="name" placeholder="University name" required>
