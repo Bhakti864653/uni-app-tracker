@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 import sqlite3
 import os
 import secrets
-import smtplib
-from email.mime.text import MIMEText
+import json
+import urllib.request
 from datetime import date
 
 load_dotenv()
@@ -17,7 +17,7 @@ DB_PATH = os.environ.get("DATABASE_PATH", "universities.db")
 TURSO_DATABASE_URL = os.environ.get("TURSO_DATABASE_URL")
 TURSO_AUTH_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
 EMAIL_ADDRESS = os.environ.get("EMAIL_ADDRESS")
-EMAIL_APP_PASSWORD = os.environ.get("EMAIL_APP_PASSWORD")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 REMINDER_TOKEN = os.environ.get("REMINDER_TOKEN")
 AUTO_REMINDER_DAYS = 7
 
@@ -104,14 +104,21 @@ def days_remaining_text(deadline_str):
         return f"{days_left} days left"
 
 def send_email_message(subject, body):
-    message = MIMEText(body)
-    message["Subject"] = subject
-    message["From"] = EMAIL_ADDRESS
-    message["To"] = EMAIL_ADDRESS
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
-        server.starttls()
-        server.login(EMAIL_ADDRESS, EMAIL_APP_PASSWORD)
-        server.send_message(message)
+    payload = json.dumps({
+        "from": "University Tracker <onboarding@resend.dev>",
+        "to": [EMAIL_ADDRESS],
+        "subject": subject,
+        "text": body,
+    }).encode()
+    request_obj = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+    )
+    urllib.request.urlopen(request_obj, timeout=15)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -169,7 +176,7 @@ def home():
         next_deadline=next_deadline,
         reminder_sent=request.args.get("reminder_sent"),
         reminder_error=request.args.get("reminder_error"),
-        email_configured=bool(EMAIL_ADDRESS and EMAIL_APP_PASSWORD),
+        email_configured=bool(EMAIL_ADDRESS and RESEND_API_KEY),
     )
 
 @app.route("/add", methods=["POST"])
@@ -228,7 +235,7 @@ def delete_checklist_item(item_id):
 @app.route("/reminders/send")
 @login_required
 def send_reminders():
-    if not EMAIL_ADDRESS or not EMAIL_APP_PASSWORD:
+    if not EMAIL_ADDRESS or not RESEND_API_KEY:
         return redirect("/?reminder_error=not_configured")
 
     conn = get_db()
@@ -247,7 +254,7 @@ def send_reminders():
 
     try:
         send_email_message("University Application Reminders", body)
-    except (smtplib.SMTPException, OSError):
+    except OSError:
         return redirect("/?reminder_error=send_failed")
 
     return redirect("/?reminder_sent=1")
@@ -257,7 +264,7 @@ def send_auto_reminder():
     if not REMINDER_TOKEN or not secrets.compare_digest(request.args.get("token", ""), REMINDER_TOKEN):
         return "Forbidden", 403
 
-    if not EMAIL_ADDRESS or not EMAIL_APP_PASSWORD:
+    if not EMAIL_ADDRESS or not RESEND_API_KEY:
         return "Email not configured", 200
 
     conn = get_db()
@@ -279,7 +286,7 @@ def send_auto_reminder():
 
     try:
         send_email_message("University Application Deadline Reminder", body)
-    except (smtplib.SMTPException, OSError):
+    except OSError:
         return "Send failed", 500
 
     return "Reminder sent", 200

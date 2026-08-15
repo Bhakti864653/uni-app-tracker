@@ -36,7 +36,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Create a `.env` file (see `.env.example`) with your own `SECRET_KEY` and `LOGIN_PASSWORD`. To enable the "Email reminders" button, also add `EMAIL_ADDRESS` and `EMAIL_APP_PASSWORD` (a [Gmail App Password](https://myaccount.google.com/apppasswords), not your regular password) - otherwise leave them out and the button just won't show up. Then:
+Create a `.env` file (see `.env.example`) with your own `SECRET_KEY` and `LOGIN_PASSWORD`. To enable the "Email reminders" button, also add `EMAIL_ADDRESS` and a [Resend](https://resend.com) `RESEND_API_KEY` - otherwise leave them out and the button just won't show up. Then:
 
 ```
 python app.py
