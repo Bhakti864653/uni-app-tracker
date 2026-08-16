@@ -438,7 +438,7 @@ def signup():
                 conn.close()
                 session.clear()
                 session["user_id"] = user_id
-                return redirect("/")
+                return redirect("/dashboard")
     return render_template("signup.html", error=error)
 
 @app.route("/login", methods=["GET", "POST"])
@@ -458,7 +458,7 @@ def login():
             if user and check_password_hash(user["password_hash"], password):
                 session.clear()
                 session["user_id"] = user["id"]
-                return redirect("/")
+                return redirect("/dashboard")
             error = "Incorrect email or password"
     return render_template("login.html", error=error)
 
@@ -476,9 +476,15 @@ def demo_login():
     session.clear()
     session["user_id"] = demo_user_id
     session["is_demo"] = True
-    return redirect("/")
+    return redirect("/dashboard")
 
 @app.route("/")
+def landing():
+    if session.get("user_id"):
+        return redirect("/dashboard")
+    return render_template("landing.html")
+
+@app.route("/dashboard")
 @login_required
 def home():
     user_id = session["user_id"]
@@ -548,7 +554,7 @@ def add():
     add_university(conn, session["user_id"], request.form["name"], request.form["deadline"])
     conn.commit()
     conn.close()
-    return redirect("/")
+    return redirect("/dashboard")
 
 @app.route("/status/<int:university_id>", methods=["POST"])
 @login_required
@@ -563,7 +569,7 @@ def update_status(university_id):
     )
     conn.commit()
     conn.close()
-    return redirect("/")
+    return redirect("/dashboard")
 
 @app.route("/checklist/toggle/<int:item_id>", methods=["POST"])
 @login_required
@@ -577,7 +583,7 @@ def toggle_checklist_item(item_id):
     conn.execute("UPDATE tasks SET done = ? WHERE id = ?", (new_done, item_id))
     conn.commit()
     conn.close()
-    return redirect("/")
+    return redirect("/dashboard")
 
 @app.route("/checklist/add/<int:university_id>", methods=["POST"])
 @login_required
@@ -592,7 +598,7 @@ def add_checklist_item(university_id):
     )
     conn.commit()
     conn.close()
-    return redirect("/")
+    return redirect("/dashboard")
 
 @app.route("/checklist/delete/<int:item_id>", methods=["POST"])
 @login_required
@@ -604,13 +610,13 @@ def delete_checklist_item(item_id):
     conn.execute("DELETE FROM tasks WHERE id = ?", (item_id,))
     conn.commit()
     conn.close()
-    return redirect("/")
+    return redirect("/dashboard")
 
 @app.route("/reminders/send")
 @login_required
 def send_reminders():
     if not EMAIL_ADDRESS or not RESEND_API_KEY:
-        return redirect("/?reminder_error=not_configured")
+        return redirect("/dashboard?reminder_error=not_configured")
 
     conn = get_db()
     rows = dictrows(conn.execute(
@@ -631,9 +637,9 @@ def send_reminders():
     try:
         send_email_message("University Application Reminders", body)
     except OSError:
-        return redirect("/?reminder_error=send_failed")
+        return redirect("/dashboard?reminder_error=send_failed")
 
-    return redirect("/?reminder_sent=1")
+    return redirect("/dashboard?reminder_sent=1")
 
 @app.route("/demo/cleanup")
 def cleanup_demo():
@@ -820,7 +826,7 @@ def delete(university_id):
     conn.execute("DELETE FROM universities WHERE id = ?", (university_id,))
     conn.commit()
     conn.close()
-    return redirect("/")
+    return redirect("/dashboard")
 
 @app.route("/pipeline")
 @login_required

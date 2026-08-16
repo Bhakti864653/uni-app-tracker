@@ -1,10 +1,22 @@
 from conftest import reset_csrf
 
 
-def test_home_redirects_to_login_when_not_logged_in(client):
+def test_landing_page_is_publicly_accessible(client):
     response = client.get("/")
+    assert response.status_code == 200
+    assert b"Get started free" in response.data
+
+
+def test_dashboard_redirects_to_login_when_not_logged_in(client):
+    response = client.get("/dashboard")
     assert response.status_code == 302
     assert "/login" in response.headers["Location"]
+
+
+def test_landing_page_redirects_logged_in_users_to_dashboard(logged_in_client):
+    response = logged_in_client.get("/")
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/dashboard"
 
 
 def test_signup_creates_account_and_logs_in(client, csrf_token):
@@ -15,7 +27,7 @@ def test_signup_creates_account_and_logs_in(client, csrf_token):
         "csrf_token": csrf_token,
     })
     assert response.status_code == 302
-    assert response.headers["Location"] == "/"
+    assert response.headers["Location"] == "/dashboard"
 
 
 def test_signup_with_mismatched_passwords_shows_error(client, csrf_token):
@@ -48,7 +60,7 @@ def test_login_with_correct_credentials_redirects_home(logged_in_client, csrf_to
         "csrf_token": csrf_token,
     })
     assert response.status_code == 302
-    assert response.headers["Location"] == "/"
+    assert response.headers["Location"] == "/dashboard"
 
 
 def test_post_without_csrf_token_is_rejected(logged_in_client):
@@ -56,20 +68,20 @@ def test_post_without_csrf_token_is_rejected(logged_in_client):
     assert response.status_code == 400
 
 
-def test_home_shows_empty_state_for_new_user(logged_in_client):
-    response = logged_in_client.get("/")
-    assert b"No universities yet" in response.data
+def test_home_shows_onboarding_welcome_for_new_user(logged_in_client):
+    response = logged_in_client.get("/dashboard")
+    assert "Let's set up your first application".encode() in response.data
 
 
 def test_add_university_appears_on_home_page(logged_in_client, csrf_token):
     logged_in_client.post("/add", data={"name": "MIT", "deadline": "2027-01-01", "csrf_token": csrf_token})
-    response = logged_in_client.get("/")
+    response = logged_in_client.get("/dashboard")
     assert b"MIT" in response.data
 
 
 def test_delete_university_removes_it(logged_in_client, csrf_token):
     logged_in_client.post("/add", data={"name": "MIT", "deadline": "2027-01-01", "csrf_token": csrf_token})
-    response = logged_in_client.get("/")
+    response = logged_in_client.get("/dashboard")
     html = response.data.decode()
 
     # Find MIT's specific delete form, not just the first one on the page
@@ -77,13 +89,13 @@ def test_delete_university_removes_it(logged_in_client, csrf_token):
     university_id = mit_section.split('action="/delete/')[1].split('"')[0]
 
     logged_in_client.post(f"/delete/{university_id}", data={"csrf_token": csrf_token})
-    response = logged_in_client.get("/")
+    response = logged_in_client.get("/dashboard")
     assert b"MIT" not in response.data
 
 
 def test_new_university_gets_default_checklist(logged_in_client, csrf_token):
     logged_in_client.post("/add", data={"name": "MIT", "deadline": "2027-01-01", "csrf_token": csrf_token})
-    response = logged_in_client.get("/")
+    response = logged_in_client.get("/dashboard")
     assert b"Essay" in response.data
     assert b"Recommendation Letters" in response.data
     assert b"Transcript" in response.data
@@ -107,7 +119,7 @@ def test_user_cannot_see_another_users_university(client, csrf_token):
         "confirm_password": "testpassword123",
         "csrf_token": csrf_token,
     })
-    response = client.get("/")
+    response = client.get("/dashboard")
     assert b"Private University" not in response.data
 
 

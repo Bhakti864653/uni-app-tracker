@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>University Application Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        (function () {
+            const saved = localStorage.getItem("theme");
+            if (saved) document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
+</head>
+<body>
+    <div class="page landing-page-wrap">
+        <header class="top-bar">
+            <h1 class="landing-brand">University Application Tracker</h1>
+            <div class="top-bar-actions">
+                <a href="/login" class="btn-secondary">Log in</a>
+                <a href="/signup" class="btn-primary">Sign up</a>
+            </div>
+        </header>
+
+        <section class="landing-hero">
+            <h2>Every application, deadline, essay, and recommendation letter - in one place.</h2>
+            <p>Stop juggling spreadsheets and sticky notes. Track your entire college application process, see exactly what's left to do, and never miss a deadline.</p>
+            <div class="landing-cta-row">
+                <a href="/signup" class="btn-primary landing-cta">Get started free</a>
+                <a href="/demo-login" class="btn-secondary landing-cta">Try the demo &rarr;</a>
+            </div>
+        </section>
+
+        <section class="landing-features">
+            <div class="task-section">
+                <h3>Readiness Score</h3>
+                <p>A single number showing how ready each application really is, blending your checklist, essays, recommendations, and documents.</p>
+            </div>
+            <div class="task-section">
+                <h3>What to work on next</h3>
+                <p>Automatically ranks your most urgent incomplete tasks across every school, so you always know what needs attention.</p>
+            </div>
+            <div class="task-section">
+                <h3>Full application pipeline</h3>
+                <p>Essays, recommendation letters, documents, and cost comparisons - all tracked per school, alongside a status pipeline and analytics.</p>
+            </div>
+            <div class="task-section">
+                <h3>Deadline reminders</h3>
+                <p>Automatic email reminders when a deadline is approaching, so nothing slips through the cracks.</p>
+            </div>
+            <div class="task-section">
+                <h3>Private and secure</h3>
+                <p>Your own account, your own data - password-protected with no sharing between users, ever.</p>
+            </div>
+            <div class="task-section">
+                <h3>No commitment to try it</h3>
+                <p>Explore a fully working demo with realistic sample data - no account required.</p>
+            </div>
+        </section>
+
+        <footer class="landing-footer">
+            <a href="https://github.com/Bhakti864653/uni-app-tracker" target="_blank" rel="noopener">View source on GitHub</a>
+        </footer>
+    </div>
+</body>
+</html>
