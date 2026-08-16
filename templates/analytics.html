@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Analytics - University Application Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,6 +42,7 @@
         {% if has_cost_data %}
         <div class="task-section">
             <h2>Cost comparison</h2>
+            <div class="table-scroll">
             <table class="cost-table">
                 <thead>
                     <tr>
@@ -62,6 +63,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
         </div>
         {% endif %}
 

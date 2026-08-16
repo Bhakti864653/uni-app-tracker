@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>University Application Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +20,7 @@
             <div class="top-bar-actions">
                 <a href="/pipeline" class="btn-secondary">Pipeline</a>
                 <a href="/analytics" class="btn-secondary">Analytics</a>
-                <button id="theme-toggle" type="button" class="btn-secondary"></button>
+                <button id="theme-toggle" type="button" class="btn-secondary" aria-label="Toggle dark mode">Dark mode</button>
                 {% if email_configured %}
                 <a href="/reminders/send" class="btn-secondary">Email reminders</a>
                 {% endif %}
@@ -132,7 +132,7 @@
                         </form>
                         <form action="/checklist/delete/{{ item.id }}" method="POST" class="inline-form">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="checklist-delete link-button" title="Remove task">&times;</button>
+                            <button type="submit" class="checklist-delete link-button" title="Remove task" aria-label="Remove task">&times;</button>
                         </form>
                     </li>
                     {% endfor %}
@@ -140,7 +140,7 @@
                 <form action="/checklist/add/{{ uni.id }}" method="POST" class="add-task-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="text" name="task" placeholder="Add a task">
-                    <button type="submit" class="btn-icon">+</button>
+                    <button type="submit" class="btn-icon" aria-label="Add task">+</button>
                 </form>
 
                 <div class="card-footer">
