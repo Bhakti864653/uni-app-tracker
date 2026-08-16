@@ -5,6 +5,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
         (function () {
@@ -15,7 +16,10 @@
 </head>
 <body>
     <div class="login-page">
-        <h1>University Application Tracker</h1>
+        <h1 class="auth-brand">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="brand-logo">
+            University Application Tracker
+        </h1>
 
         <form action="/login" method="POST" class="add-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

@@ -846,8 +846,29 @@ h2 {
     max-width: 900px;
 }
 
+.brand-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.landing-brand,
+.auth-brand,
+.dashboard-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .landing-brand {
     font-size: 1.2rem;
+}
+
+.auth-brand {
+    justify-content: center;
+    font-size: 1.3rem;
 }
 
 .landing-hero {
