@@ -90,10 +90,16 @@
                     labels: Object.keys(statusData),
                     datasets: [{
                         data: Object.values(statusData),
-                        backgroundColor: ["#94a3b8", "#f59e0b", "#22c55e"],
+                        backgroundColor: ["#7c8db5", "#ffd23f", "#39ff88"],
+                        borderColor: "#0d1526",
+                        borderWidth: 2,
                     }],
                 },
-                options: { plugins: { legend: { position: "bottom" } } },
+                options: {
+                    plugins: {
+                        legend: { position: "bottom", labels: { color: "#e8f1ff" } },
+                    },
+                },
             });
 
             new Chart(document.getElementById("progressChart"), {
@@ -103,11 +109,23 @@
                     datasets: [{
                         label: "Checklist % complete",
                         data: universities.map(u => u.progress_percent),
-                        backgroundColor: "#6366f1",
+                        backgroundColor: "#2de2e6",
+                        borderRadius: 4,
                     }],
                 },
                 options: {
-                    scales: { y: { beginAtZero: true, max: 100 } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: "#7c8db5" },
+                            grid: { color: "rgba(45, 226, 230, 0.12)" },
+                        },
+                        x: {
+                            ticks: { color: "#7c8db5" },
+                            grid: { color: "rgba(45, 226, 230, 0.06)" },
+                        },
+                    },
                     plugins: { legend: { display: false } },
                 },
             });
