@@ -4,7 +4,7 @@
     <title>Analytics - University Application Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -90,14 +90,12 @@
                     labels: Object.keys(statusData),
                     datasets: [{
                         data: Object.values(statusData),
-                        backgroundColor: ["#7c8db5", "#ffd23f", "#39ff88"],
-                        borderColor: "#0d1526",
-                        borderWidth: 2,
+                        backgroundColor: ["#7a7466", "#a16e2b", "#4c6b52"],
                     }],
                 },
                 options: {
                     plugins: {
-                        legend: { position: "bottom", labels: { color: "#e8f1ff" } },
+                        legend: { position: "bottom", labels: { color: "#71717a" } },
                     },
                 },
             });
@@ -109,7 +107,7 @@
                     datasets: [{
                         label: "Checklist % complete",
                         data: universities.map(u => u.progress_percent),
-                        backgroundColor: "#2de2e6",
+                        backgroundColor: "#b8863b",
                         borderRadius: 4,
                     }],
                 },
@@ -118,12 +116,12 @@
                         y: {
                             beginAtZero: true,
                             max: 100,
-                            ticks: { color: "#7c8db5" },
-                            grid: { color: "rgba(45, 226, 230, 0.12)" },
+                            ticks: { color: "#71717a" },
+                            grid: { color: "rgba(92, 100, 120, 0.15)" },
                         },
                         x: {
-                            ticks: { color: "#7c8db5" },
-                            grid: { color: "rgba(45, 226, 230, 0.06)" },
+                            ticks: { color: "#71717a" },
+                            grid: { color: "rgba(92, 100, 120, 0.08)" },
                         },
                     },
                     plugins: { legend: { display: false } },
