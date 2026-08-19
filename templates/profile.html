@@ -22,7 +22,13 @@
                 <h1>{{ uni.name }}</h1>
                 <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ days_text }}</p>
             </div>
-            <a href="/edit/{{ uni.id }}" class="btn-secondary">Edit details</a>
+            <div class="top-bar-actions">
+                <form action="/duplicate/{{ uni.id }}" method="POST" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn-secondary">Duplicate</button>
+                </form>
+                <a href="/edit/{{ uni.id }}" class="btn-secondary">Edit details</a>
+            </div>
         </header>
 
         <div class="profile-summary">

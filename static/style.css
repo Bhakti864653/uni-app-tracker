@@ -81,6 +81,16 @@ select {
     color: var(--text);
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
 body {
     transition: background-color 0.15s ease, color 0.15s ease;
     font-family: var(--font-body);
@@ -649,6 +659,12 @@ h2 {
     color: #05070d;
     font-weight: 600;
     box-shadow: 0 0 14px var(--accent);
+}
+
+.banner-link {
+    text-decoration: underline;
+    font-weight: 700;
+    margin-left: 4px;
 }
 
 .card-actions {

@@ -17,6 +17,9 @@ A full-featured web app for tracking college applications - deadlines, essays, r
 - Per-university checklist, plus dedicated essay, recommendation letter, and document tracking - each with its own status flow
 - Smart deadline countdowns ("5 days left" / "3 days overdue")
 - Free-text notes per application
+- **Duplicate application** - clone a university's checklist, essays, and recommenders into a new entry (statuses reset) so a new application doesn't start from scratch
+- **Soft delete with undo** - deleting a university doesn't destroy it immediately; a one-click "Undo" restores it, with old deleted entries purged automatically after 30 days
+- **Export** - download all applications as CSV, or as an .ics calendar file of every deadline
 
 **Dashboard & insights**
 - Personal dashboard with status counts, nearest deadline, search, filter, and sort

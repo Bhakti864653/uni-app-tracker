@@ -68,6 +68,36 @@ At the same time, four separate planned features - checklist items, essays, reco
 
 **What I learned:** "Add AI" is often really "add a ranked recommendation," and it's worth checking whether the non-AI version of a feature already gets 90% of the value before reaching for an API.
 
+## Soft delete instead of a second confirmation dialog
+
+**Decision:** Delete already had a `confirm()` dialog ("Delete MIT? This cannot be undone."), but confirm dialogs get reflexively clicked through - they don't actually prevent the mistake they're guarding against. Added real soft-delete: `deleted_at` gets set instead of a hard `DELETE`, every listing query filters `WHERE deleted_at IS NULL`, and the dashboard shows a "deleted. Undo" banner backed by a `/restore/<id>` route.
+
+**Follow-up:** Old soft-deleted rows aren't kept forever - a `purge_old_deleted_universities()` sweep (rows deleted more than 30 days ago) runs inside the existing token-protected `/demo/cleanup` endpoint, reusing the scheduled GitHub Actions job instead of standing up a second cron.
+
+**Bug caught while building it:** the undo banner's `<form>` was nested inside a `<p class="banner">`. `<form>` isn't valid content inside `<p>` per the HTML spec, so the browser's parser silently auto-closes the `<p>` the moment it hits the `<form>` tag - the Undo link rendered outside the styled banner entirely, as a bare underlined link floating below it. Fixed by using a `<div>` instead. A good reminder that invalid nesting doesn't throw an error, it just silently reshapes the DOM in a way that's easy to miss without actually looking at the rendered page.
+
+**What I learned:** A second confirmation dialog on top of an existing one doesn't fix a data-loss problem - only real reversibility does. Also: "it looks right in the HTML" isn't the same as "the browser will parse it the way I wrote it."
+
+## Two real vulnerabilities in the new export features
+
+**Problem 1 - CSV formula injection:** The new "Export CSV" button writes each university's name straight into a cell. A name like `=cmd|'/c calc'!A1` (settable through the existing add/edit forms - no client-side restriction stops it) would be interpreted as a live formula the moment the exported file is opened in Excel or Google Sheets, by the student or by anyone they share the export with, like a counselor or parent. This is a well-known, named vulnerability class (CSV injection, CWE-1236), not a hypothetical.
+
+**Problem 2 - ICS content injection:** The new "Calendar" export escaped commas/semicolons in the university name for the `.ics` file but not embedded `\r\n`. A name containing a real newline (reachable by posting form data directly, bypassing the browser's own newline-stripping on a text `<input>`) could inject extra lines into the generated calendar file - splicing in a fake `VALARM` or `VEVENT` block that a calendar app would parse as genuine.
+
+**Fix:** Cells starting with `=`, `+`, `-`, `@`, tab, or a stray CR now get a leading `'` prefix before being written to CSV, neutralizing formula interpretation. The `.ics` escaper now also converts any `\r\n` / `\n` / `\r` into a literal `\n` escape sequence per the iCalendar spec, so embedded newlines stay inert text inside one field instead of becoming real line breaks. Both are covered by regression tests now.
+
+**What I learned:** Any feature whose whole point is "produce a file meant to be opened in a different program" inherits that other program's parsing rules as part of its own attack surface - the vulnerability isn't in this app's code path, it's in what Excel or a calendar client does with the file afterward.
+
+## What an automated code review caught (and one thing I overruled)
+
+Ran a second, independent review pass over the same diff. It found one more real bug of the exact same shape as the two above: `export_calendar()` escaped the university `name` field but wrote `deadline` straight into the `DTSTART` line unescaped and unvalidated - a `deadline` containing embedded `\r\n` (there was never any server-side validation that a stored deadline is actually a real date) could inject fake ICS lines the same way the `name` field could before it was fixed. Fixed by parsing `deadline` through `date.fromisoformat()` and skipping the row if it isn't a real date, instead of trusting the raw string.
+
+Also caught: the delete confirmation dialog still read "This cannot be undone" after delete became an undoable soft-delete - directly contradicting the feature it was warning about. Fixed the copy. And: the `deleted_at IS NULL` filter was hand-copied into 7 different SQL strings across the file, an easy thing to forget on the next new feature - pulled into two shared helpers (`get_user_universities`, `get_all_active_universities`) instead.
+
+**Where I disagreed:** the review also flagged that `duplicate()` doesn't copy a task's `notes`, `due_date`, or `word_count` into the new copy, calling it silent data loss. I don't think it is one - the original task (and its notes) are untouched; only the *new* copy starts fresh. Those three fields are progress state tied to the old application's history (a note like "emailed recommender 1/15", a word count on a draft), not reusable template data like the recommender's name or an essay prompt. Copying them would mean a "fresh start" duplicate opens with someone else's old progress log already checked off, which is worse, not better. Kept the reset behavior.
+
+**What I learned:** A second review pass is worth running even right after finishing one, since it can catch the exact class of bug the first pass just fixed elsewhere in the same diff. But not every finding is correct just because it came from a review - the right response is to actually think about the suggested fix, not apply it mechanically.
+
 ## Miscellaneous fixes worth noting
 
 - **Sorting `None` and numbers together:** The cost-comparison table crashed with `TypeError: '<' not supported between instances of 'float' and 'NoneType'` the first time a school had no cost data yet while another did. Fixed by giving missing values a sort key of `float("inf")` instead of comparing `None` directly.

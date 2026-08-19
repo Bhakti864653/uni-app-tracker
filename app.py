@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template, session
+from flask import Flask, request, redirect, render_template, session, Response
 from functools import wraps
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,7 +8,10 @@ import os
 import secrets
 import json
 import time
+import csv
+import io
 import urllib.request
+from urllib.parse import quote
 from collections import defaultdict
 from datetime import date, timedelta, datetime, timezone
 
@@ -78,15 +81,26 @@ def dictrow(cursor):
 
 def get_owned_university(conn, university_id, user_id):
     return dictrow(conn.execute(
-        "SELECT * FROM universities WHERE id = ? AND user_id = ?",
+        "SELECT * FROM universities WHERE id = ? AND user_id = ? AND deleted_at IS NULL",
         (university_id, user_id)
+    ))
+
+def get_user_universities(conn, user_id):
+    return dictrows(conn.execute(
+        "SELECT * FROM universities WHERE user_id = ? AND deleted_at IS NULL ORDER BY deadline ASC",
+        (user_id,)
+    ))
+
+def get_all_active_universities(conn):
+    return dictrows(conn.execute(
+        "SELECT * FROM universities WHERE deleted_at IS NULL ORDER BY deadline ASC"
     ))
 
 def get_owned_task(conn, task_id, user_id):
     return dictrow(conn.execute(
         """SELECT tasks.* FROM tasks
            JOIN universities ON universities.id = tasks.university_id
-           WHERE tasks.id = ? AND universities.user_id = ?""",
+           WHERE tasks.id = ? AND universities.user_id = ? AND universities.deleted_at IS NULL""",
         (task_id, user_id)
     ))
 
@@ -153,6 +167,8 @@ def init_db():
         conn.execute("ALTER TABLE universities ADD COLUMN tuition_cost REAL")
     if "financial_aid_estimate" not in existing_uni_columns:
         conn.execute("ALTER TABLE universities ADD COLUMN financial_aid_estimate REAL")
+    if "deleted_at" not in existing_uni_columns:
+        conn.execute("ALTER TABLE universities ADD COLUMN deleted_at TEXT")
 
     existing_task_columns = [row["name"] for row in dictrows(conn.execute("PRAGMA table_info(tasks)"))]
     if "prompt" not in existing_task_columns:
@@ -302,6 +318,16 @@ def cleanup_expired_demo_users(conn, max_age_hours=24):
         conn.execute("DELETE FROM universities WHERE user_id = ?", (user["id"],))
         conn.execute("DELETE FROM users WHERE id = ?", (user["id"],))
     return len(expired_users)
+
+def purge_old_deleted_universities(conn, max_age_days=30):
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
+    expired = dictrows(conn.execute(
+        "SELECT id FROM universities WHERE deleted_at IS NOT NULL AND deleted_at < ?", (cutoff,)
+    ))
+    for row in expired:
+        conn.execute("DELETE FROM tasks WHERE university_id = ?", (row["id"],))
+        conn.execute("DELETE FROM universities WHERE id = ?", (row["id"],))
+    return len(expired)
 
 def days_left_int(deadline_str):
     deadline_date = date.fromisoformat(deadline_str)
@@ -489,9 +515,7 @@ def landing():
 def home():
     user_id = session["user_id"]
     conn = get_db()
-    rows = dictrows(conn.execute(
-        "SELECT * FROM universities WHERE user_id = ? ORDER BY deadline ASC", (user_id,)
-    ))
+    rows = get_user_universities(conn, user_id)
 
     universities = []
     for row in rows:
@@ -545,6 +569,8 @@ def home():
         reminder_error=request.args.get("reminder_error"),
         email_configured=bool(EMAIL_ADDRESS and RESEND_API_KEY),
         is_demo=session.get("is_demo", False),
+        deleted_id=request.args.get("deleted_id"),
+        deleted_name=request.args.get("deleted_name"),
     )
 
 @app.route("/add", methods=["POST"])
@@ -619,9 +645,7 @@ def send_reminders():
         return redirect("/dashboard?reminder_error=not_configured")
 
     conn = get_db()
-    rows = dictrows(conn.execute(
-        "SELECT * FROM universities WHERE user_id = ? ORDER BY deadline ASC", (session["user_id"],)
-    ))
+    rows = get_user_universities(conn, session["user_id"])
     conn.close()
 
     pending = [row for row in rows if row["status"] != "Submitted"]
@@ -647,9 +671,10 @@ def cleanup_demo():
         return "Forbidden", 403
     conn = get_db()
     removed_count = cleanup_expired_demo_users(conn)
+    purged_count = purge_old_deleted_universities(conn)
     conn.commit()
     conn.close()
-    return f"Cleaned up {removed_count} expired demo account(s)", 200
+    return f"Cleaned up {removed_count} expired demo account(s), purged {purged_count} old deleted universit(y/ies)", 200
 
 @app.route("/reminders/auto")
 def send_auto_reminder():
@@ -660,7 +685,7 @@ def send_auto_reminder():
         return "Email not configured", 200
 
     conn = get_db()
-    rows = dictrows(conn.execute("SELECT * FROM universities ORDER BY deadline ASC"))
+    rows = get_all_active_universities(conn)
     conn.close()
 
     urgent = [
@@ -819,22 +844,157 @@ def delete_task(task_id):
 @login_required
 def delete(university_id):
     conn = get_db()
-    if not get_owned_university(conn, university_id, session["user_id"]):
+    uni = get_owned_university(conn, university_id, session["user_id"])
+    if not uni:
         conn.close()
         return "Not found", 404
-    conn.execute("DELETE FROM tasks WHERE university_id = ?", (university_id,))
-    conn.execute("DELETE FROM universities WHERE id = ?", (university_id,))
+    conn.execute(
+        "UPDATE universities SET deleted_at = ? WHERE id = ?",
+        (datetime.now(timezone.utc).isoformat(), university_id)
+    )
+    conn.commit()
+    conn.close()
+    return redirect(f"/dashboard?deleted_id={university_id}&deleted_name={quote(uni['name'])}")
+
+@app.route("/restore/<int:university_id>", methods=["POST"])
+@login_required
+def restore(university_id):
+    conn = get_db()
+    uni = dictrow(conn.execute(
+        "SELECT id FROM universities WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL",
+        (university_id, session["user_id"])
+    ))
+    if not uni:
+        conn.close()
+        return "Not found", 404
+    conn.execute("UPDATE universities SET deleted_at = NULL WHERE id = ?", (university_id,))
     conn.commit()
     conn.close()
     return redirect("/dashboard")
+
+@app.route("/duplicate/<int:university_id>", methods=["POST"])
+@login_required
+def duplicate(university_id):
+    conn = get_db()
+    uni = get_owned_university(conn, university_id, session["user_id"])
+    if not uni:
+        conn.close()
+        return "Not found", 404
+
+    new_deadline = (date.today() + timedelta(days=30)).isoformat()
+    cursor = conn.execute(
+        "INSERT INTO universities (user_id, name, deadline, program) VALUES (?, ?, ?, ?)",
+        (session["user_id"], f"{uni['name']} (Copy)", new_deadline, uni["program"])
+    )
+    new_id = cursor.lastrowid
+
+    tasks = dictrows(conn.execute("SELECT * FROM tasks WHERE university_id = ?", (university_id,)))
+    for task in tasks:
+        reset_status = TASK_STATUS_OPTIONS[task["task_type"]][0] if task["task_type"] in TASK_STATUS_OPTIONS else "Not Started"
+        conn.execute(
+            """INSERT INTO tasks
+               (university_id, task_type, title, status, done, prompt, recommender_name, recommender_email)
+               VALUES (?, ?, ?, ?, 0, ?, ?, ?)""",
+            (new_id, task["task_type"], task["title"], reset_status,
+             task["prompt"], task["recommender_name"], task["recommender_email"])
+        )
+    conn.commit()
+    conn.close()
+    return redirect(f"/university/{new_id}")
+
+def ics_escape(text):
+    return (
+        text.replace("\\", "\\\\")
+        .replace(",", "\\,")
+        .replace(";", "\\;")
+        .replace("\r\n", "\\n")
+        .replace("\n", "\\n")
+        .replace("\r", "\\n")
+    )
+
+def csv_safe(text):
+    # Neutralize spreadsheet formula injection: a cell starting with one of
+    # these characters gets interpreted as a formula by Excel/Sheets when the
+    # exported file is later opened by someone else (e.g. shared with a
+    # counselor or parent).
+    if text and text[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + text
+    return text
+
+@app.route("/export/csv")
+@login_required
+def export_csv():
+    conn = get_db()
+    rows = get_user_universities(conn, session["user_id"])
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "University", "Deadline", "Days left", "Status", "Program",
+        "Tuition", "Aid estimate", "Net cost", "Readiness %",
+    ])
+    for row in rows:
+        checklist = dictrows(conn.execute(
+            "SELECT done FROM tasks WHERE university_id = ? AND task_type = 'checklist'", (row["id"],)
+        ))
+        essays = dictrows(conn.execute(
+            "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'essay'", (row["id"],)
+        ))
+        recommendations = dictrows(conn.execute(
+            "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'recommendation'", (row["id"],)
+        ))
+        documents = dictrows(conn.execute(
+            "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'document'", (row["id"],)
+        ))
+        net_cost = None
+        if row["tuition_cost"] is not None and row["financial_aid_estimate"] is not None:
+            net_cost = row["tuition_cost"] - row["financial_aid_estimate"]
+        writer.writerow([
+            csv_safe(row["name"]), row["deadline"], days_left_int(row["deadline"]), row["status"], csv_safe(row["program"]),
+            row["tuition_cost"] if row["tuition_cost"] is not None else "",
+            row["financial_aid_estimate"] if row["financial_aid_estimate"] is not None else "",
+            net_cost if net_cost is not None else "",
+            compute_readiness_score(checklist, essays, recommendations, documents),
+        ])
+    conn.close()
+
+    response = Response(output.getvalue(), mimetype="text/csv")
+    response.headers["Content-Disposition"] = "attachment; filename=applications.csv"
+    return response
+
+@app.route("/export/calendar")
+@login_required
+def export_calendar():
+    conn = get_db()
+    rows = get_user_universities(conn, session["user_id"])
+    conn.close()
+
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//University Application Tracker//EN"]
+    now_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    for row in rows:
+        try:
+            deadline_compact = date.fromisoformat(row["deadline"]).strftime("%Y%m%d")
+        except (ValueError, TypeError):
+            continue  # skip a malformed deadline rather than emit unsafe/broken ICS
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:university-{row['id']}@uni-app-tracker",
+            f"DTSTAMP:{now_stamp}",
+            f"DTSTART;VALUE=DATE:{deadline_compact}",
+            f"SUMMARY:{ics_escape(row['name'])} application deadline",
+            "END:VEVENT",
+        ]
+    lines.append("END:VCALENDAR")
+
+    response = Response("\r\n".join(lines), mimetype="text/calendar")
+    response.headers["Content-Disposition"] = "attachment; filename=application-deadlines.ics"
+    return response
 
 @app.route("/pipeline")
 @login_required
 def pipeline():
     conn = get_db()
-    rows = dictrows(conn.execute(
-        "SELECT * FROM universities WHERE user_id = ? ORDER BY deadline ASC", (session["user_id"],)
-    ))
+    rows = get_user_universities(conn, session["user_id"])
     conn.close()
 
     next_status = {
@@ -857,9 +1017,7 @@ def pipeline():
 @login_required
 def analytics():
     conn = get_db()
-    rows = dictrows(conn.execute(
-        "SELECT * FROM universities WHERE user_id = ? ORDER BY deadline ASC", (session["user_id"],)
-    ))
+    rows = get_user_universities(conn, session["user_id"])
 
     university_data = []
     status_counts = {option: 0 for option in STATUS_OPTIONS}

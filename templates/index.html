@@ -24,6 +24,8 @@
             <div class="top-bar-actions">
                 <a href="/pipeline" class="btn-secondary">Pipeline</a>
                 <a href="/analytics" class="btn-secondary">Analytics</a>
+                <a href="/export/csv" class="btn-secondary">Export CSV</a>
+                <a href="/export/calendar" class="btn-secondary">Calendar</a>
                 <button id="theme-toggle" type="button" class="btn-secondary" aria-label="Toggle dark mode">Dark mode</button>
                 {% if email_configured %}
                 <a href="/reminders/send" class="btn-secondary">Email reminders</a>
@@ -37,6 +39,15 @@
 
         {% if is_demo %}
         <p class="banner banner-demo">This is your own private demo sandbox with sample data - feel free to explore and edit anything. It's temporary and gets cleaned up automatically, so nothing you do here affects anyone else.</p>
+        {% endif %}
+        {% if deleted_name %}
+        <div class="banner banner-success">
+            "{{ deleted_name }}" deleted.
+            <form action="/restore/{{ deleted_id }}" method="POST" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="link-button banner-link">Undo</button>
+            </form>
+        </div>
         {% endif %}
         {% if reminder_sent %}
         <p class="banner banner-success">Reminder email sent!</p>
@@ -160,8 +171,12 @@
                     <div class="card-actions">
                         <a href="/university/{{ uni.id }}" class="edit-link">Profile</a>
                         <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
+                        <form action="/duplicate/{{ uni.id }}" method="POST" class="inline-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="edit-link link-button">Duplicate</button>
+                        </form>
                         <form action="/delete/{{ uni.id }}" method="POST" class="inline-form"
-                              onsubmit="return confirm('Delete {{ uni.name }}? This cannot be undone.');">
+                              onsubmit="return confirm('Delete {{ uni.name }}? You can undo this from the dashboard afterward.');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="delete-link link-button">Delete</button>
                         </form>
