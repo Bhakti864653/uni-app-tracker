@@ -74,7 +74,10 @@ select:focus-visible {
 body {
     transition: background-color 0.15s ease, color 0.15s ease;
     font-family: var(--font-body);
-    background: var(--bg);
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+        var(--bg);
+    background-attachment: fixed;
     color: var(--text);
     margin: 0;
     padding: 40px 20px 80px;
@@ -90,6 +93,7 @@ h1 {
     font-size: 1.55rem;
     font-weight: 600;
     margin: 0;
+    text-shadow: 0 0 1px color-mix(in srgb, currentColor 35%, transparent);
 }
 
 h2 {
@@ -253,6 +257,8 @@ h2 {
     padding: 3px 9px;
     border-radius: var(--radius-sm);
     border: 1.5px solid currentColor;
+    outline: 1px solid currentColor;
+    outline-offset: 2px;
     background: transparent;
     white-space: nowrap;
     transform: rotate(-1.5deg);
@@ -275,6 +281,8 @@ h2 {
     padding: 3px 9px;
     border-radius: var(--radius-sm);
     border: 1.5px solid currentColor;
+    outline: 1px solid currentColor;
+    outline-offset: 2px;
     background: transparent;
     white-space: nowrap;
     transform: rotate(1.5deg);
@@ -1082,6 +1090,7 @@ h2 {
     font-weight: 600;
     line-height: 1.25;
     letter-spacing: -0.01em;
+    text-shadow: 0 0 1.5px color-mix(in srgb, currentColor 40%, transparent);
     margin-bottom: 16px;
 }
 
