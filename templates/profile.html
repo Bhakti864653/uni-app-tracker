@@ -43,10 +43,10 @@
         <p class="uni-notes">{{ uni.notes }}</p>
         {% endif %}
 
-        {% set section_labels = {"essay": "Essays", "recommendation": "Recommendation Letters", "document": "Documents"} %}
-        {% set field_labels = {"essay": "Essay title", "recommendation": "Recommender name", "document": "Document name"} %}
+        {% set section_labels = {"essay": "Essays", "recommendation": "Recommendation Letters", "document": "Documents", "interview": "Interviews"} %}
+        {% set field_labels = {"essay": "Essay title", "recommendation": "Recommender name", "document": "Document name", "interview": "Interview (e.g. Alumni Interview)"} %}
 
-        {% for task_type in ["essay", "recommendation", "document"] %}
+        {% for task_type in ["essay", "recommendation", "document", "interview"] %}
         <section class="task-section">
             <h2>{{ section_labels[task_type] }}</h2>
 
@@ -68,9 +68,29 @@
                         {% if task.due_date %}
                         <p class="task-detail">Due {{ task.due_date }}</p>
                         {% endif %}
+                        {% if task.task_type == "document" and task.file_name %}
+                        <p class="task-detail">
+                            <a href="/tasks/file/{{ task.id }}">&#8595; {{ task.file_name }}</a>
+                        </p>
+                        {% endif %}
                     </div>
                     <span class="status-badge status-{{ task.status | replace(' ', '-') | lower }}">{{ task.status }}</span>
                 </div>
+
+                {% if task.task_type == "document" %}
+                {% if task.file_name %}
+                <form action="/tasks/file/delete/{{ task.id }}" method="POST" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="delete-link link-button">Remove file</button>
+                </form>
+                {% else %}
+                <form action="/tasks/upload/{{ task.id }}" method="POST" class="inline-form" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+                    <button type="submit" class="btn-secondary">Attach file</button>
+                </form>
+                {% endif %}
+                {% endif %}
 
                 <form action="/tasks/update/{{ task.id }}" method="POST" class="task-update-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

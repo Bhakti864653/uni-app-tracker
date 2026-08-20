@@ -3,6 +3,7 @@ from functools import wraps
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.utils import secure_filename
 import sqlite3
 import os
 import secrets
@@ -10,6 +11,7 @@ import json
 import time
 import csv
 import io
+import mimetypes
 import urllib.request
 from urllib.parse import quote
 from collections import defaultdict
@@ -31,17 +33,23 @@ AUTO_REMINDER_DAYS = 7
 
 DEFAULT_CHECKLIST_TASKS = ["Essay", "Recommendation Letters", "Transcript"]
 STATUS_OPTIONS = ["Not Started", "In Progress", "Submitted"]
-TASK_TYPES = ["essay", "recommendation", "document"]
+TASK_TYPES = ["essay", "recommendation", "document", "interview"]
 TASK_STATUS_OPTIONS = {
     "essay": ["Not Started", "Drafting", "In Review", "Final"],
     "recommendation": ["Not Requested", "Requested", "Received"],
     "document": ["Not Started", "Requested", "Received", "Submitted"],
+    "interview": ["Not Scheduled", "Scheduled", "Completed"],
 }
 TASK_STATUS_PROGRESS = {
     "essay": {"Not Started": 0, "Drafting": 33, "In Review": 66, "Final": 100},
     "recommendation": {"Not Requested": 0, "Requested": 50, "Received": 100},
     "document": {"Not Started": 0, "Requested": 33, "Received": 66, "Submitted": 100},
+    "interview": {"Not Scheduled": 0, "Scheduled": 50, "Completed": 100},
 }
+
+ALLOWED_UPLOAD_EXTENSIONS = {".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"}
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 
 RATE_LIMIT_WINDOW_SECONDS = 900
 RATE_LIMIT_MAX_ATTEMPTS = 5
@@ -179,6 +187,12 @@ def init_db():
         conn.execute("ALTER TABLE tasks ADD COLUMN recommender_name TEXT")
     if "recommender_email" not in existing_task_columns:
         conn.execute("ALTER TABLE tasks ADD COLUMN recommender_email TEXT")
+    if "file_name" not in existing_task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN file_name TEXT")
+    if "file_mime" not in existing_task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN file_mime TEXT")
+    if "file_data" not in existing_task_columns:
+        conn.execute("ALTER TABLE tasks ADD COLUMN file_data BLOB")
 
     # One-time migration from the old single-account schema: copy any
     # pre-existing checklist_items into the new unified tasks table.
@@ -224,6 +238,7 @@ def seed_demo_data(conn, user_id):
             "recommendation": {"title": "Dr. Chen", "recommender_name": "Dr. Chen",
                                 "recommender_email": "chen@school.edu", "status": "Requested"},
             "document": {"title": "Official Transcript", "status": "Received"},
+            "interview": {"title": "Alumni Interview", "status": "Scheduled"},
         },
         {
             "name": "University of Michigan", "program": "Data Science",
@@ -293,6 +308,12 @@ def seed_demo_data(conn, user_id):
             "INSERT INTO tasks (university_id, task_type, title, status) VALUES (?, 'document', ?, ?)",
             (new_id, document["title"], document["status"])
         )
+        interview = school.get("interview")
+        if interview:
+            conn.execute(
+                "INSERT INTO tasks (university_id, task_type, title, status) VALUES (?, 'interview', ?, ?)",
+                (new_id, interview["title"], interview["status"])
+            )
 
 def create_demo_user(conn):
     demo_email = f"demo-{secrets.token_hex(6)}@universitytracker.app"
@@ -333,14 +354,17 @@ def days_left_int(deadline_str):
     deadline_date = date.fromisoformat(deadline_str)
     return (deadline_date - date.today()).days
 
-def compute_readiness_score(checklist, essays, recommendations, documents):
+def compute_readiness_score(checklist, essays, recommendations, documents, interviews=()):
     component_percents = []
 
     if checklist:
         done_count = sum(1 for item in checklist if item["done"])
         component_percents.append(100 * done_count / len(checklist))
 
-    for task_type, tasks in (("essay", essays), ("recommendation", recommendations), ("document", documents)):
+    for task_type, tasks in (
+        ("essay", essays), ("recommendation", recommendations),
+        ("document", documents), ("interview", interviews),
+    ):
         if tasks:
             progress_map = TASK_STATUS_PROGRESS[task_type]
             average = sum(progress_map.get(task["status"], 0) for task in tasks) / len(tasks)
@@ -382,6 +406,13 @@ def build_suggestions(universities, limit=6):
             if document["status"] != "Submitted":
                 suggestions.append({
                     "text": f'Submit "{document["title"]}" for {uni["name"]} ({document["status"]})',
+                    "university_id": uni["id"],
+                    "days_left": days_left,
+                })
+        for interview in uni["interviews"]:
+            if interview["status"] != "Completed":
+                suggestions.append({
+                    "text": f'Prepare for interview "{interview["title"]}" for {uni["name"]} ({interview["status"]})',
                     "university_id": uni["id"],
                     "days_left": days_left,
                 })
@@ -529,7 +560,11 @@ def home():
             "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'recommendation'", (row["id"],)
         ))
         documents = dictrows(conn.execute(
-            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'document'", (row["id"],)
+            "SELECT id, university_id, title, status FROM tasks WHERE university_id = ? AND task_type = 'document'",
+            (row["id"],)
+        ))
+        interviews = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'interview'", (row["id"],)
         ))
 
         done_count = sum(1 for item in checklist if item["done"])
@@ -546,8 +581,9 @@ def home():
             "essays": essays,
             "recommendations": recommendations,
             "documents": documents,
+            "interviews": interviews,
             "progress_percent": progress_percent,
-            "readiness_score": compute_readiness_score(checklist, essays, recommendations, documents),
+            "readiness_score": compute_readiness_score(checklist, essays, recommendations, documents, interviews),
             "notes": row["notes"],
         })
     conn.close()
@@ -840,6 +876,68 @@ def delete_task(task_id):
     conn.close()
     return redirect(f"/university/{university_id}")
 
+@app.route("/tasks/upload/<int:task_id>", methods=["POST"])
+@login_required
+def upload_task_file(task_id):
+    conn = get_db()
+    task = get_owned_task(conn, task_id, session["user_id"])
+    if not task:
+        conn.close()
+        return "Not found", 404
+
+    uploaded = request.files.get("file")
+    if not uploaded or not uploaded.filename:
+        conn.close()
+        return redirect(f"/university/{task['university_id']}")
+
+    filename = secure_filename(uploaded.filename)
+    extension = os.path.splitext(filename)[1].lower()
+    if extension not in ALLOWED_UPLOAD_EXTENSIONS:
+        conn.close()
+        return "Unsupported file type", 400
+
+    file_data = uploaded.read()
+    if len(file_data) > MAX_UPLOAD_BYTES:
+        conn.close()
+        return "File too large", 400
+
+    file_mime = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    conn.execute(
+        "UPDATE tasks SET file_name = ?, file_mime = ?, file_data = ? WHERE id = ?",
+        (filename, file_mime, file_data, task_id)
+    )
+    conn.commit()
+    conn.close()
+    return redirect(f"/university/{task['university_id']}")
+
+@app.route("/tasks/file/<int:task_id>")
+@login_required
+def download_task_file(task_id):
+    conn = get_db()
+    task = get_owned_task(conn, task_id, session["user_id"])
+    conn.close()
+    if not task or not task["file_data"]:
+        return "Not found", 404
+    response = Response(bytes(task["file_data"]), mimetype=task["file_mime"] or "application/octet-stream")
+    response.headers["Content-Disposition"] = f'attachment; filename="{task["file_name"]}"'
+    return response
+
+@app.route("/tasks/file/delete/<int:task_id>", methods=["POST"])
+@login_required
+def delete_task_file(task_id):
+    conn = get_db()
+    task = get_owned_task(conn, task_id, session["user_id"])
+    if not task:
+        conn.close()
+        return "Not found", 404
+    conn.execute(
+        "UPDATE tasks SET file_name = NULL, file_mime = NULL, file_data = NULL WHERE id = ?",
+        (task_id,)
+    )
+    conn.commit()
+    conn.close()
+    return redirect(f"/university/{task['university_id']}")
+
 @app.route("/delete/<int:university_id>", methods=["POST"])
 @login_required
 def delete(university_id):
@@ -946,6 +1044,9 @@ def export_csv():
         documents = dictrows(conn.execute(
             "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'document'", (row["id"],)
         ))
+        interviews = dictrows(conn.execute(
+            "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'interview'", (row["id"],)
+        ))
         net_cost = None
         if row["tuition_cost"] is not None and row["financial_aid_estimate"] is not None:
             net_cost = row["tuition_cost"] - row["financial_aid_estimate"]
@@ -954,7 +1055,7 @@ def export_csv():
             row["tuition_cost"] if row["tuition_cost"] is not None else "",
             row["financial_aid_estimate"] if row["financial_aid_estimate"] is not None else "",
             net_cost if net_cost is not None else "",
-            compute_readiness_score(checklist, essays, recommendations, documents),
+            compute_readiness_score(checklist, essays, recommendations, documents, interviews),
         ])
     conn.close()
 

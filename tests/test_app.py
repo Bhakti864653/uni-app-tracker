@@ -1,3 +1,5 @@
+import io
+
 import app
 from conftest import reset_csrf
 
@@ -260,3 +262,128 @@ def test_deleted_university_excluded_from_exports(logged_in_client, csrf_token):
     assert b"MIT" not in csv_response.data
     calendar_response = logged_in_client.get("/export/calendar")
     assert b"MIT" not in calendar_response.data
+
+
+def add_test_university(name="MIT", deadline="2027-01-01"):
+    conn = app.get_db()
+    cursor = conn.execute(
+        "INSERT INTO universities (user_id, name, deadline) VALUES (?, ?, ?)",
+        (1, name, deadline),
+    )
+    university_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return university_id
+
+
+def test_add_interview_task_appears_on_profile_page(logged_in_client, csrf_token):
+    university_id = add_test_university()
+    logged_in_client.post(f"/tasks/add/{university_id}/interview", data={
+        "title": "Alumni Interview", "due_date": "2027-01-15", "csrf_token": csrf_token,
+    })
+    response = logged_in_client.get(f"/university/{university_id}")
+    assert b"Alumni Interview" in response.data
+    assert b"Not Scheduled" in response.data
+
+
+def test_incomplete_interview_appears_in_suggestions(logged_in_client, csrf_token):
+    university_id = add_test_university()
+    logged_in_client.post(f"/tasks/add/{university_id}/interview", data={
+        "title": "Alumni Interview", "csrf_token": csrf_token,
+    })
+    response = logged_in_client.get("/dashboard")
+    assert b"Prepare for interview" in response.data
+
+
+def test_upload_and_download_document_file(logged_in_client, csrf_token):
+    university_id = add_test_university()
+    add_response = logged_in_client.post(f"/tasks/add/{university_id}/document", data={
+        "title": "Transcript", "csrf_token": csrf_token,
+    })
+    html = logged_in_client.get(f"/university/{university_id}").data.decode()
+    task_id = html.split('action="/tasks/upload/')[1].split('"')[0]
+
+    upload_response = logged_in_client.post(
+        f"/tasks/upload/{task_id}",
+        data={"csrf_token": csrf_token, "file": (io.BytesIO(b"fake pdf bytes"), "transcript.pdf")},
+        content_type="multipart/form-data",
+    )
+    assert upload_response.status_code == 302
+
+    profile_html = logged_in_client.get(f"/university/{university_id}").data.decode()
+    assert "transcript.pdf" in profile_html
+
+    download_response = logged_in_client.get(f"/tasks/file/{task_id}")
+    assert download_response.status_code == 200
+    assert download_response.data == b"fake pdf bytes"
+    assert "transcript.pdf" in download_response.headers["Content-Disposition"]
+
+
+def test_upload_rejects_disallowed_file_type(logged_in_client, csrf_token):
+    university_id = add_test_university()
+    logged_in_client.post(f"/tasks/add/{university_id}/document", data={
+        "title": "Transcript", "csrf_token": csrf_token,
+    })
+    html = logged_in_client.get(f"/university/{university_id}").data.decode()
+    task_id = html.split('action="/tasks/upload/')[1].split('"')[0]
+
+    response = logged_in_client.post(
+        f"/tasks/upload/{task_id}",
+        data={"csrf_token": csrf_token, "file": (io.BytesIO(b"echo hi"), "script.exe")},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 400
+
+    download_response = logged_in_client.get(f"/tasks/file/{task_id}")
+    assert download_response.status_code == 404
+
+
+def test_remove_document_file(logged_in_client, csrf_token):
+    university_id = add_test_university()
+    logged_in_client.post(f"/tasks/add/{university_id}/document", data={
+        "title": "Transcript", "csrf_token": csrf_token,
+    })
+    html = logged_in_client.get(f"/university/{university_id}").data.decode()
+    task_id = html.split('action="/tasks/upload/')[1].split('"')[0]
+    logged_in_client.post(
+        f"/tasks/upload/{task_id}",
+        data={"csrf_token": csrf_token, "file": (io.BytesIO(b"fake pdf bytes"), "transcript.pdf")},
+        content_type="multipart/form-data",
+    )
+
+    logged_in_client.post(f"/tasks/file/delete/{task_id}", data={"csrf_token": csrf_token})
+
+    download_response = logged_in_client.get(f"/tasks/file/{task_id}")
+    assert download_response.status_code == 404
+    profile_html = logged_in_client.get(f"/university/{university_id}").data.decode()
+    assert "transcript.pdf" not in profile_html
+
+
+def test_user_cannot_download_another_users_file(client, csrf_token):
+    client.post("/signup", data={
+        "email": "first@example.com", "password": "testpassword123",
+        "confirm_password": "testpassword123", "csrf_token": csrf_token,
+    })
+    reset_csrf(client)
+    university_id = add_test_university()
+    client.post(f"/tasks/add/{university_id}/document", data={
+        "title": "Transcript", "csrf_token": csrf_token,
+    })
+    html = client.get(f"/university/{university_id}").data.decode()
+    task_id = html.split('action="/tasks/upload/')[1].split('"')[0]
+    client.post(
+        f"/tasks/upload/{task_id}",
+        data={"csrf_token": csrf_token, "file": (io.BytesIO(b"fake pdf bytes"), "transcript.pdf")},
+        content_type="multipart/form-data",
+    )
+
+    client.post("/logout", data={"csrf_token": csrf_token})
+    reset_csrf(client)
+    client.post("/signup", data={
+        "email": "second@example.com", "password": "testpassword123",
+        "confirm_password": "testpassword123", "csrf_token": csrf_token,
+    })
+    reset_csrf(client)
+
+    response = client.get(f"/tasks/file/{task_id}")
+    assert response.status_code == 404
