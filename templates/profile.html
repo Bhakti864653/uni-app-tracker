@@ -43,6 +43,26 @@
         <p class="uni-notes">{{ uni.notes }}</p>
         {% endif %}
 
+        <section class="task-section">
+            <h2>Share with a parent or counselor</h2>
+            {% if share_url %}
+            <p class="task-detail">Anyone with this link can view a read-only summary (no login needed):</p>
+            <p class="uni-notes">
+                <a href="{{ share_url }}" target="_blank" rel="noopener">{{ share_url }}</a>
+            </p>
+            <form action="/university/{{ uni.id }}/unshare" method="POST" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="delete-link link-button">Revoke link</button>
+            </form>
+            {% else %}
+            <p class="task-detail">Not currently shared. Create a read-only link to send to a parent or counselor.</p>
+            <form action="/university/{{ uni.id }}/share" method="POST" class="inline-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-secondary">Create share link</button>
+            </form>
+            {% endif %}
+        </section>
+
         {% set section_labels = {"essay": "Essays", "recommendation": "Recommendation Letters", "document": "Documents", "interview": "Interviews"} %}
         {% set field_labels = {"essay": "Essay title", "recommendation": "Recommender name", "document": "Document name", "interview": "Interview (e.g. Alumni Interview)"} %}
 

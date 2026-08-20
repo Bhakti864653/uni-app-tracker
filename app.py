@@ -177,6 +177,8 @@ def init_db():
         conn.execute("ALTER TABLE universities ADD COLUMN financial_aid_estimate REAL")
     if "deleted_at" not in existing_uni_columns:
         conn.execute("ALTER TABLE universities ADD COLUMN deleted_at TEXT")
+    if "share_token" not in existing_uni_columns:
+        conn.execute("ALTER TABLE universities ADD COLUMN share_token TEXT")
 
     existing_task_columns = [row["name"] for row in dictrows(conn.execute("PRAGMA table_info(tasks)"))]
     if "prompt" not in existing_task_columns:
@@ -803,6 +805,10 @@ def university_profile(university_id):
     if uni["tuition_cost"] is not None and uni["financial_aid_estimate"] is not None:
         net_cost = uni["tuition_cost"] - uni["financial_aid_estimate"]
 
+    share_url = None
+    if uni["share_token"]:
+        share_url = request.host_url.rstrip("/") + "/shared/" + uni["share_token"]
+
     return render_template(
         "profile.html",
         uni=uni,
@@ -810,6 +816,76 @@ def university_profile(university_id):
         net_cost=net_cost,
         tasks_by_type=tasks_by_type,
         task_status_options=TASK_STATUS_OPTIONS,
+        share_url=share_url,
+    )
+
+@app.route("/university/<int:university_id>/share", methods=["POST"])
+@login_required
+def create_share_link(university_id):
+    conn = get_db()
+    if not get_owned_university(conn, university_id, session["user_id"]):
+        conn.close()
+        return "Not found", 404
+    conn.execute(
+        "UPDATE universities SET share_token = ? WHERE id = ?",
+        (secrets.token_urlsafe(24), university_id)
+    )
+    conn.commit()
+    conn.close()
+    return redirect(f"/university/{university_id}")
+
+@app.route("/university/<int:university_id>/unshare", methods=["POST"])
+@login_required
+def revoke_share_link(university_id):
+    conn = get_db()
+    if not get_owned_university(conn, university_id, session["user_id"]):
+        conn.close()
+        return "Not found", 404
+    conn.execute("UPDATE universities SET share_token = NULL WHERE id = ?", (university_id,))
+    conn.commit()
+    conn.close()
+    return redirect(f"/university/{university_id}")
+
+@app.route("/shared/<token>")
+def shared_university(token):
+    conn = get_db()
+    uni = dictrow(conn.execute(
+        "SELECT * FROM universities WHERE share_token = ? AND deleted_at IS NULL", (token,)
+    ))
+    if not uni:
+        conn.close()
+        return "Not found", 404
+    tasks_by_type = {
+        task_type: dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = ? ORDER BY id",
+            (uni["id"], task_type)
+        ))
+        for task_type in TASK_TYPES
+    }
+    checklist = dictrows(conn.execute(
+        "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'checklist'", (uni["id"],)
+    ))
+    conn.close()
+
+    net_cost = None
+    if uni["tuition_cost"] is not None and uni["financial_aid_estimate"] is not None:
+        net_cost = uni["tuition_cost"] - uni["financial_aid_estimate"]
+    done_count = sum(1 for item in checklist if item["done"])
+    progress_percent = round(100 * done_count / len(checklist)) if checklist else 0
+    essays = tasks_by_type.get("essay", [])
+    recommendations = tasks_by_type.get("recommendation", [])
+    documents = tasks_by_type.get("document", [])
+    interviews = tasks_by_type.get("interview", [])
+
+    return render_template(
+        "shared.html",
+        uni=uni,
+        days_text=days_remaining_text(uni["deadline"]),
+        net_cost=net_cost,
+        checklist=checklist,
+        progress_percent=progress_percent,
+        readiness_score=compute_readiness_score(checklist, essays, recommendations, documents, interviews),
+        tasks_by_type=tasks_by_type,
     )
 
 @app.route("/tasks/add/<int:university_id>/<task_type>", methods=["POST"])
@@ -1090,6 +1166,61 @@ def export_calendar():
     response = Response("\r\n".join(lines), mimetype="text/calendar")
     response.headers["Content-Disposition"] = "attachment; filename=application-deadlines.ics"
     return response
+
+@app.route("/compare")
+@login_required
+def compare():
+    raw_ids = [value for value in request.args.get("ids", "").split(",") if value.strip().isdigit()]
+    requested_ids = [int(value) for value in raw_ids][:4]
+
+    conn = get_db()
+    universities = []
+    for university_id in requested_ids:
+        uni = get_owned_university(conn, university_id, session["user_id"])
+        if not uni:
+            continue
+
+        checklist = dictrows(conn.execute(
+            "SELECT done FROM tasks WHERE university_id = ? AND task_type = 'checklist'", (university_id,)
+        ))
+        essays = dictrows(conn.execute(
+            "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'essay'", (university_id,)
+        ))
+        recommendations = dictrows(conn.execute(
+            "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'recommendation'", (university_id,)
+        ))
+        documents = dictrows(conn.execute(
+            "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'document'", (university_id,)
+        ))
+        interviews = dictrows(conn.execute(
+            "SELECT status FROM tasks WHERE university_id = ? AND task_type = 'interview'", (university_id,)
+        ))
+
+        done_count = sum(1 for item in checklist if item["done"])
+        net_cost = None
+        if uni["tuition_cost"] is not None and uni["financial_aid_estimate"] is not None:
+            net_cost = uni["tuition_cost"] - uni["financial_aid_estimate"]
+
+        universities.append({
+            "id": uni["id"],
+            "name": uni["name"],
+            "deadline": uni["deadline"],
+            "days_text": days_remaining_text(uni["deadline"]),
+            "status": uni["status"],
+            "program": uni["program"],
+            "tuition_cost": uni["tuition_cost"],
+            "financial_aid_estimate": uni["financial_aid_estimate"],
+            "net_cost": net_cost,
+            "checklist_text": f"{done_count}/{len(checklist)}" if checklist else "-",
+            "essays_text": f"{sum(1 for e in essays if e['status'] == 'Final')}/{len(essays)} final" if essays else "-",
+            "recommendations_text": f"{sum(1 for r in recommendations if r['status'] == 'Received')}/{len(recommendations)} received" if recommendations else "-",
+            "documents_text": f"{sum(1 for d in documents if d['status'] == 'Submitted')}/{len(documents)} submitted" if documents else "-",
+            "interviews_text": f"{sum(1 for i in interviews if i['status'] == 'Completed')}/{len(interviews)} completed" if interviews else "-",
+            "readiness_score": compute_readiness_score(checklist, essays, recommendations, documents, interviews),
+        })
+    conn.close()
+
+    return render_template("compare.html", universities=universities)
 
 @app.route("/pipeline")
 @login_required

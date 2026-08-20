@@ -99,6 +99,7 @@
                 <option value="name">Sort: Name</option>
                 <option value="status">Sort: Status</option>
             </select>
+            <button id="compare-button" type="button" class="btn-secondary" disabled>Compare selected</button>
         </div>
 
         {% if not universities %}
@@ -117,6 +118,10 @@
             <li class="uni-card" data-name="{{ uni.name }}" data-status="{{ uni.status }}" data-deadline="{{ uni.deadline }}">
                 <div class="uni-top">
                     <div>
+                        <label class="compare-checkbox-label">
+                            <input type="checkbox" class="compare-checkbox" value="{{ uni.id }}">
+                            Compare
+                        </label>
                         <h2 class="uni-name">{{ uni.name }}</h2>
                         <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
                     </div>
@@ -233,6 +238,27 @@
         searchInput.addEventListener("input", applyFilters);
         statusFilter.addEventListener("change", applyFilters);
         sortSelect.addEventListener("change", applySort);
+
+        const compareButton = document.getElementById("compare-button");
+        const compareCheckboxes = document.querySelectorAll(".compare-checkbox");
+
+        function updateCompareButton() {
+            const checkedCount = document.querySelectorAll(".compare-checkbox:checked").length;
+            compareButton.disabled = checkedCount < 2 || checkedCount > 4;
+            compareButton.textContent = checkedCount > 4
+                ? "Compare (max 4)"
+                : `Compare selected${checkedCount ? " (" + checkedCount + ")" : ""}`;
+        }
+
+        compareCheckboxes.forEach(function (checkbox) {
+            checkbox.addEventListener("change", updateCompareButton);
+        });
+
+        compareButton.addEventListener("click", function () {
+            const ids = Array.from(document.querySelectorAll(".compare-checkbox:checked"))
+                .map(function (checkbox) { return checkbox.value; });
+            window.location.href = "/compare?ids=" + ids.join(",");
+        });
 
         const themeToggle = document.getElementById("theme-toggle");
 

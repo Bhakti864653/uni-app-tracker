@@ -387,3 +387,58 @@ def test_user_cannot_download_another_users_file(client, csrf_token):
 
     response = client.get(f"/tasks/file/{task_id}")
     assert response.status_code == 404
+
+
+def test_share_link_shows_readonly_page(logged_in_client, csrf_token):
+    university_id = add_test_university()
+    logged_in_client.post(f"/university/{university_id}/share", data={"csrf_token": csrf_token})
+
+    profile_html = logged_in_client.get(f"/university/{university_id}").data.decode()
+    share_url = profile_html.split('href="')[1:]
+    token = next(part.split('"')[0].rsplit("/shared/", 1)[1] for part in share_url if "/shared/" in part)
+
+    public_client = app.app.test_client()
+    response = public_client.get(f"/shared/{token}")
+    assert response.status_code == 200
+    assert b"MIT" in response.data
+    assert b"csrf_token" not in response.data
+
+
+def test_revoke_share_link_disables_it(logged_in_client, csrf_token):
+    university_id = add_test_university()
+    logged_in_client.post(f"/university/{university_id}/share", data={"csrf_token": csrf_token})
+    conn = app.get_db()
+    token = conn.execute("SELECT share_token FROM universities WHERE id = ?", (university_id,)).fetchone()[0]
+    conn.close()
+
+    logged_in_client.post(f"/university/{university_id}/unshare", data={"csrf_token": csrf_token})
+
+    public_client = app.app.test_client()
+    response = public_client.get(f"/shared/{token}")
+    assert response.status_code == 404
+
+
+def test_unshared_university_has_no_public_link(client):
+    response = client.get("/shared/nonexistent-token")
+    assert response.status_code == 404
+
+
+def test_compare_shows_selected_universities(logged_in_client, csrf_token):
+    first_id = add_test_university(name="MIT", deadline="2027-01-01")
+    second_id = add_test_university(name="Yale", deadline="2027-02-01")
+
+    response = logged_in_client.get(f"/compare?ids={first_id},{second_id}")
+    assert b"MIT" in response.data
+    assert b"Yale" in response.data
+
+
+def test_compare_excludes_other_users_universities(logged_in_client, csrf_token):
+    other_university_id = add_test_university(name="Secret School")
+    my_university_id = add_test_university(name="MIT")
+    conn = app.get_db()
+    conn.execute("UPDATE universities SET user_id = 999 WHERE id = ?", (other_university_id,))
+    conn.commit()
+    conn.close()
+
+    response = logged_in_client.get(f"/compare?ids={other_university_id},{my_university_id}")
+    assert b"Secret School" not in response.data

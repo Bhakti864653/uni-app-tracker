@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Compare - University Application Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        (function () {
+            const saved = localStorage.getItem("theme");
+            if (saved) document.documentElement.setAttribute("data-theme", saved);
+        })();
+    </script>
+</head>
+<body>
+    <div class="page">
+        <header class="top-bar">
+            <h1>Compare</h1>
+            <div class="top-bar-actions">
+                <a href="/dashboard" class="btn-secondary">Dashboard</a>
+                <a href="/analytics" class="btn-secondary">Analytics</a>
+            </div>
+        </header>
+
+        {% if universities|length < 2 %}
+        <p class="empty-state">Pick at least 2 universities from the dashboard to compare them here.</p>
+        {% else %}
+        <div class="table-scroll">
+        <table class="cost-table">
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for uni in universities %}
+                    <th><a href="/university/{{ uni.id }}">{{ uni.name }}</a></th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr><th>Readiness</th>{% for uni in universities %}<td>{{ uni.readiness_score }}%</td>{% endfor %}</tr>
+                <tr><th>Status</th>{% for uni in universities %}<td>{{ uni.status }}</td>{% endfor %}</tr>
+                <tr><th>Deadline</th>{% for uni in universities %}<td>{{ uni.deadline }} ({{ uni.days_text }})</td>{% endfor %}</tr>
+                <tr><th>Program</th>{% for uni in universities %}<td>{{ uni.program or "-" }}</td>{% endfor %}</tr>
+                <tr><th>Tuition</th>{% for uni in universities %}<td>{{ "${:,.0f}".format(uni.tuition_cost) if uni.tuition_cost is not none else "-" }}</td>{% endfor %}</tr>
+                <tr><th>Aid estimate</th>{% for uni in universities %}<td>{{ "${:,.0f}".format(uni.financial_aid_estimate) if uni.financial_aid_estimate is not none else "-" }}</td>{% endfor %}</tr>
+                <tr><th>Net cost</th>{% for uni in universities %}<td>{{ "${:,.0f}".format(uni.net_cost) if uni.net_cost is not none else "-" }}</td>{% endfor %}</tr>
+                <tr><th>Checklist</th>{% for uni in universities %}<td>{{ uni.checklist_text }}</td>{% endfor %}</tr>
+                <tr><th>Essays</th>{% for uni in universities %}<td>{{ uni.essays_text }}</td>{% endfor %}</tr>
+                <tr><th>Recommendations</th>{% for uni in universities %}<td>{{ uni.recommendations_text }}</td>{% endfor %}</tr>
+                <tr><th>Documents</th>{% for uni in universities %}<td>{{ uni.documents_text }}</td>{% endfor %}</tr>
+                <tr><th>Interviews</th>{% for uni in universities %}<td>{{ uni.interviews_text }}</td>{% endfor %}</tr>
+            </tbody>
+        </table>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

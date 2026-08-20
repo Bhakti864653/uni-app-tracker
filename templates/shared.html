@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ uni.name }} - Shared Application Progress</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="page">
+        <header class="top-bar">
+            <div>
+                <p class="uni-notes">Shared, read-only application progress</p>
+                <h1>{{ uni.name }}</h1>
+                <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ days_text }}</p>
+            </div>
+            <span class="readiness-badge {% if readiness_score >= 80 %}readiness-high{% elif readiness_score >= 50 %}readiness-medium{% else %}readiness-low{% endif %}" title="Readiness score">{{ readiness_score }}%</span>
+        </header>
+
+        <div class="profile-summary">
+            <span class="status-badge status-{{ uni.status | replace(' ', '-') | lower }}">{{ uni.status }}</span>
+            {% if uni.program %}<span class="stat">Program: <strong>{{ uni.program }}</strong></span>{% endif %}
+            {% if uni.tuition_cost is not none %}<span class="stat">Tuition: <strong>${{ "%.0f"|format(uni.tuition_cost) }}</strong></span>{% endif %}
+            {% if uni.financial_aid_estimate is not none %}<span class="stat">Aid estimate: <strong>${{ "%.0f"|format(uni.financial_aid_estimate) }}</strong></span>{% endif %}
+            {% if net_cost is not none %}<span class="stat stat-highlight">Net cost: <strong>${{ "%.0f"|format(net_cost) }}</strong></span>{% endif %}
+        </div>
+
+        {% if uni.notes %}
+        <p class="uni-notes">{{ uni.notes }}</p>
+        {% endif %}
+
+        <section class="task-section">
+            <h2>Checklist</h2>
+            <p class="progress-label">{{ progress_percent }}% complete</p>
+            <ul class="checklist">
+                {% for item in checklist %}
+                <li class="checklist-row">
+                    <span class="checklist-item {% if item.done %}checked{% endif %}">
+                        <span class="checkbox">{% if item.done %}&#10003;{% endif %}</span>
+                        {{ item.title }}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        {% set section_labels = {"essay": "Essays", "recommendation": "Recommendation Letters", "document": "Documents", "interview": "Interviews"} %}
+
+        {% for task_type in ["essay", "recommendation", "document", "interview"] %}
+        <section class="task-section">
+            <h2>{{ section_labels[task_type] }}</h2>
+            {% if not tasks_by_type[task_type] %}
+            <p class="empty-state">Nothing added yet.</p>
+            {% endif %}
+            {% for task in tasks_by_type[task_type] %}
+            <div class="task-card">
+                <div class="task-card-top">
+                    <div>
+                        <p class="task-title">{{ task.title }}</p>
+                        {% if task.due_date %}
+                        <p class="task-detail">Due {{ task.due_date }}</p>
+                        {% endif %}
+                        {% if task.task_type == "document" and task.file_name %}
+                        <p class="task-detail">File attached: {{ task.file_name }}</p>
+                        {% endif %}
+                    </div>
+                    <span class="status-badge status-{{ task.status | replace(' ', '-') | lower }}">{{ task.status }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endfor %}
+    </div>
+</body>
+</html>
