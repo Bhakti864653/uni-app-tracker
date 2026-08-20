@@ -19,4 +19,4 @@ jobs:
       - name: Run tests
         env:
           SECRET_KEY: ci-test-secret-key
-        run: pytest tests/ -v
+        run: python -m pytest tests/ -v
