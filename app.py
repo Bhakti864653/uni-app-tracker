@@ -528,6 +528,8 @@ def logout():
 
 @app.route("/demo-login")
 def demo_login():
+    if is_rate_limited(f"demo-login:{request.remote_addr}"):
+        return "Too many demo sessions from this address. Try again later.", 429
     conn = get_db()
     demo_user_id = create_demo_user(conn)
     conn.commit()
@@ -681,6 +683,8 @@ def delete_checklist_item(item_id):
 def send_reminders():
     if not EMAIL_ADDRESS or not RESEND_API_KEY:
         return redirect("/dashboard?reminder_error=not_configured")
+    if is_rate_limited(f"reminders:{session['user_id']}"):
+        return redirect("/dashboard?reminder_error=rate_limited")
 
     conn = get_db()
     rows = get_user_universities(conn, session["user_id"])

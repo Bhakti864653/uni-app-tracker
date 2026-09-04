@@ -58,6 +58,9 @@
         {% if reminder_error == "send_failed" %}
         <p class="banner banner-error">Couldn't send the email - check your email credentials.</p>
         {% endif %}
+        {% if reminder_error == "rate_limited" %}
+        <p class="banner banner-error">You've sent a few reminder emails already - try again in a bit.</p>
+        {% endif %}
 
         <div class="stats-bar">
             {% for option in status_options %}

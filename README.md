@@ -49,6 +49,22 @@ A full-featured web app for tracking college applications - deadlines, essays, r
 - **Automation:** GitHub Actions (scheduled reminders, scheduled demo cleanup)
 - **Tests:** pytest with Flask's test client
 
+## Architecture
+
+```mermaid
+graph LR
+    User(("Student"))
+    App["Flask App<br/>(templates + routes) on Render"]
+    DB[("Turso<br/>hosted SQLite")]
+    Resend["Resend API<br/>email"]
+    Actions["GitHub Actions<br/>scheduled cron"]
+
+    User --> App
+    App --> DB
+    App --> Resend
+    Actions -. "daily reminders +<br/>demo cleanup" .-> App
+```
+
 ## Architecture notes
 
 - **One unified `tasks` table** (not four) covers checklist items, essays, recommendation letters, and documents, distinguished by a `task_type` column with a few nullable type-specific fields. Same CRUD routes and ownership checks handle all four.
@@ -91,3 +107,7 @@ This was my first real project after starting to learn to code, and it grew from
 - Diagnosing production-only bugs (a forked-process deadlock, a blocked network port) that never showed up locally
 - Separating logic (Python) from presentation (HTML templates) and styling with CSS
 - Setting up CI-style automation (GitHub Actions) for scheduled jobs
+
+## License
+
+MIT - see [LICENSE](LICENSE).
