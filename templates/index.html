@@ -17,7 +17,7 @@
 <body>
     {% macro campus_silhouette(kind, color) %}
     {% if kind == "skyline" %}
-    <svg class="uni-silhouette" viewBox="0 0 60 32" aria-hidden="true">
+    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <rect x="2" y="14" width="8" height="18" fill="{{ color }}"/>
         <rect x="12" y="6" width="9" height="26" fill="{{ color }}"/>
         <rect x="23" y="18" width="7" height="14" fill="{{ color }}"/>
@@ -26,21 +26,21 @@
         <rect x="51" y="4" width="8" height="28" fill="{{ color }}"/>
     </svg>
     {% elif kind == "river" %}
-    <svg class="uni-silhouette" viewBox="0 0 60 32" aria-hidden="true">
+    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <path d="M0 24 Q 15 14 30 24 T 60 22" fill="none" stroke="{{ color }}" stroke-width="2.5"/>
         <rect x="6" y="4" width="12" height="14" fill="{{ color }}"/>
         <rect x="24" y="8" width="10" height="10" fill="{{ color }}"/>
         <path d="M40 18 L48 4 L56 18 Z" fill="{{ color }}"/>
     </svg>
     {% elif kind == "tower" %}
-    <svg class="uni-silhouette" viewBox="0 0 60 32" aria-hidden="true">
+    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <rect x="24" y="2" width="12" height="24" fill="{{ color }}"/>
         <path d="M24 2 L30 -4 L36 2 Z" fill="{{ color }}" transform="translate(0,6)"/>
         <rect x="4" y="20" width="16" height="12" fill="{{ color }}" opacity="0.8"/>
         <rect x="40" y="20" width="16" height="12" fill="{{ color }}" opacity="0.8"/>
     </svg>
     {% elif kind == "trees" %}
-    <svg class="uni-silhouette" viewBox="0 0 60 32" aria-hidden="true">
+    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <circle cx="10" cy="14" r="9" fill="{{ color }}"/>
         <rect x="8.5" y="20" width="3" height="10" fill="{{ color }}"/>
         <circle cx="28" cy="10" r="11" fill="{{ color }}"/>
@@ -49,31 +49,60 @@
         <rect x="45.5" y="21" width="3" height="9" fill="{{ color }}"/>
     </svg>
     {% else %}
-    <svg class="uni-silhouette" viewBox="0 0 60 32" aria-hidden="true">
+    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
         <path d="M4 30 L4 12 L18 4 L32 12 L32 30 Z" fill="{{ color }}"/>
         <rect x="38" y="16" width="18" height="14" fill="{{ color }}" opacity="0.75"/>
     </svg>
     {% endif %}
     {% endmacro %}
+
+    {% macro crest(uni, brand, size_class) %}
+    {% if brand.logo %}
+    <img src="{{ url_for('static', filename=brand.logo) }}" alt="{{ uni.name }} official seal" class="crest crest-real {{ size_class }}">
+    {% else %}
+    <span class="crest crest-initials {{ size_class }}" style="--crest-primary: {{ brand.primary }}; --crest-secondary: {{ brand.secondary }};" aria-hidden="true">{{ brand.initials }}</span>
+    {% endif %}
+    {% endmacro %}
+
+    {% macro ring(percent, readiness_class, size) %}
+    {% set ring_offset = (percent / 100 * 100.53) | round(2) %}
+    <span class="ring-wrap {{ readiness_class }}" title="Readiness score">
+        <svg viewBox="0 0 40 40" width="{{ size }}" height="{{ size }}" role="img" aria-label="{{ percent }}% ready">
+            <circle class="ring-track" cx="20" cy="20" r="16" fill="none" stroke-width="4"/>
+            <circle class="ring-fill" cx="20" cy="20" r="16" fill="none" stroke-width="4"
+                    stroke-dasharray="{{ ring_offset }} 100.53" transform="rotate(-90 20 20)"/>
+            <text x="20" y="23.5" class="ring-text">{{ percent }}%</text>
+        </svg>
+    </span>
+    {% endmacro %}
+
     <div class="page page-dashboard">
-        <header class="top-bar">
-            <h1 class="dashboard-brand">
+        <header class="app-nav">
+            <a href="/dashboard" class="app-nav-brand">
                 <img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="brand-logo">
                 My Applications
-            </h1>
-            <div class="top-bar-actions">
-                <a href="/pipeline" class="btn-secondary">Pipeline</a>
-                <a href="/analytics" class="btn-secondary">Analytics</a>
-                <a href="/export/csv" class="btn-secondary">Export CSV</a>
-                <a href="/export/calendar" class="btn-secondary">Calendar</a>
-                <button id="theme-toggle" type="button" class="btn-secondary" aria-label="Toggle dark mode">Dark mode</button>
-                {% if email_configured %}
-                <a href="/reminders/send" class="btn-secondary">Email reminders</a>
-                {% endif %}
-                <form action="/logout" method="POST" class="inline-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="logout-link link-button">Log out</button>
-                </form>
+            </a>
+            <nav class="app-nav-links" aria-label="Primary">
+                <a href="/dashboard" class="app-nav-link is-active">Dashboard</a>
+                <a href="/pipeline" class="app-nav-link">Applications</a>
+                <a href="/export/calendar" class="app-nav-link">Calendar</a>
+                <a href="/analytics" class="app-nav-link">Analytics</a>
+            </nav>
+            <div class="app-nav-utilities">
+                <button type="button" id="utilities-toggle" class="btn-secondary" aria-haspopup="true" aria-expanded="false" aria-controls="utilities-menu">
+                    Menu
+                </button>
+                <div class="utilities-menu" id="utilities-menu" hidden>
+                    <a href="/export/csv" class="utilities-menu-item">Export CSV</a>
+                    {% if email_configured %}
+                    <a href="/reminders/send" class="utilities-menu-item">Email reminders</a>
+                    {% endif %}
+                    <button id="theme-toggle" type="button" class="utilities-menu-item" aria-label="Toggle dark mode">Dark mode</button>
+                    <form action="/logout" method="POST" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="utilities-menu-item logout-link link-button">Log out</button>
+                    </form>
+                </div>
             </div>
         </header>
 
@@ -103,7 +132,7 @@
         {% endif %}
 
         {% if universities %}
-        <section class="dashboard-hero" aria-label="Application journey overview">
+        <section class="hero-canvas" aria-label="Application journey overview">
             <div class="hero-copy-col">
                 <span class="hero-date">{{ hero_date_label() }}</span>
                 <h2 class="hero-heading">
@@ -111,6 +140,11 @@
                     <span class="hero-heading-accent">decision day.</span>
                 </h2>
                 <p class="hero-copy">This dashboard keeps every university, deadline, essay, and next step in one place - so you always know exactly where each application stands.</p>
+                <div class="hero-stats-row">
+                    {% for option in status_options %}
+                    <span class="stat"><strong>{{ status_counts[option] }}</strong> {{ option }}</span>
+                    {% endfor %}
+                </div>
                 {% if next_deadline %}
                 <div class="hero-deadline-chip">
                     Next up: <strong>{{ next_deadline.name }}</strong> &middot; {{ next_deadline.days_text }}
@@ -118,7 +152,7 @@
                 {% endif %}
             </div>
             <div class="hero-journey" data-default-selected="{{ next_deadline.id if next_deadline else universities[0].id }}">
-                <svg viewBox="0 0 420 300" role="img" aria-label="An illustrated path connecting profile, documents, applications, and decision milestones between two campus buildings">
+                <svg viewBox="0 0 420 300" role="img" aria-label="An illustrated path from researching through applying, submitting, and deciding, between two campus buildings">
                     <path class="journey-hill" d="M0 200 Q 105 170 210 190 T 420 180 V300 H0 Z"/>
                     <g class="journey-building" transform="translate(58,150)">
                         <rect x="0" y="20" width="70" height="66" rx="3"/>
@@ -139,11 +173,11 @@
                     <path class="journey-path" d="M95,236 C 150,170 175,175 200,165 C 225,155 250,125 272,110 C 300,125 335,155 347,196"/>
                     <g>
                         <circle class="journey-milestone-dot" cx="95" cy="236" r="5"/>
-                        <text class="journey-milestone-label" x="95" y="256" text-anchor="middle">Profile</text>
+                        <text class="journey-milestone-label" x="95" y="256" text-anchor="middle">Researching</text>
                         <circle class="journey-milestone-dot" cx="200" cy="165" r="5"/>
-                        <text class="journey-milestone-label" x="200" y="151" text-anchor="middle">Documents</text>
+                        <text class="journey-milestone-label" x="200" y="151" text-anchor="middle">Applying</text>
                         <circle class="journey-milestone-dot" cx="272" cy="110" r="5"/>
-                        <text class="journey-milestone-label" x="272" y="96" text-anchor="middle">Applications</text>
+                        <text class="journey-milestone-label" x="272" y="96" text-anchor="middle">Submitted</text>
                         <circle class="journey-milestone-dot" cx="347" cy="196" r="5"/>
                         <text class="journey-milestone-label" x="347" y="216" text-anchor="middle">Decision</text>
                     </g>
@@ -157,15 +191,6 @@
             </div>
         </section>
         {% endif %}
-
-        <div class="stats-bar">
-            {% for option in status_options %}
-            <span class="stat"><strong>{{ status_counts[option] }}</strong> {{ option }}</span>
-            {% endfor %}
-            {% if next_deadline %}
-            <span class="stat stat-highlight">Next: {{ next_deadline.name }} &middot; {{ next_deadline.days_text }}</span>
-            {% endif %}
-        </div>
 
         {% if suggestions %}
         <div class="suggestions-panel">
@@ -206,7 +231,7 @@
             <h2>Welcome! Let's set up your first application.</h2>
             <ol>
                 <li>Add a university below with its name and application deadline</li>
-                <li>Open its Profile page to add essays, recommendation letters, documents, and cost info</li>
+                <li>Select it here to open its workspace and add essays, recommendation letters, documents, and cost info</li>
                 <li>Come back here anytime to see your Readiness Score and what to work on next</li>
             </ol>
         </div>
@@ -217,126 +242,146 @@
             {% for uni in universities %}
             {% set brand = get_university_brand(uni.name) %}
             {% set readiness_class = "readiness-high" if uni.readiness_score >= 80 else ("readiness-medium" if uni.readiness_score >= 50 else "readiness-low") %}
-            {% set ring_offset = (uni.readiness_score / 100 * 100.53) | round(2) %}
-            <li class="uni-card" data-name="{{ uni.name }}" data-status="{{ uni.status }}" data-deadline="{{ uni.deadline }}"
+            <li class="uni-card {% if loop.first %}is-selected{% endif %}" data-name="{{ uni.name }}" data-status="{{ uni.status }}" data-deadline="{{ uni.deadline }}"
                 data-uni-id="{{ uni.id }}" data-percent="{{ uni.readiness_score }}" data-next-action="{{ uni.next_action }}"
                 data-primary="{{ brand.primary }}" style="--select-color: {{ brand.primary }};">
-                {{ campus_silhouette(brand.silhouette, brand.secondary) }}
-                <div class="uni-top">
-                    <div>
-                        <label class="compare-checkbox-label">
-                            <input type="checkbox" class="compare-checkbox" value="{{ uni.id }}">
-                            Compare
-                        </label>
-                        <button type="button" class="uni-select-trigger" aria-pressed="false" data-select-id="{{ uni.id }}">
-                            {% if brand.logo %}
-                            <img src="{{ url_for('static', filename=brand.logo) }}" alt="{{ uni.name }} official seal" class="uni-crest uni-crest-img">
-                            {% else %}
-                            <span class="uni-crest" style="--crest-primary: {{ brand.primary }}; --crest-secondary: {{ brand.secondary }};" aria-hidden="true">{{ brand.initials }}</span>
-                            {% endif %}
-                            <span class="visually-hidden">Select</span>
-                            <h2 class="uni-name">{{ uni.name }}</h2>
-                        </button>
-                        <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
-                        {% if brand.known %}
-                        <p class="uni-identity">{{ brand.location }} &middot; {{ brand.identity }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="uni-top-badges">
-                        <span class="ring-wrap {{ readiness_class }}" title="Readiness score">
-                            <svg viewBox="0 0 40 40" width="36" height="36" role="img" aria-label="{{ uni.readiness_score }}% ready">
-                                <circle class="ring-track" cx="20" cy="20" r="16" fill="none" stroke-width="4"/>
-                                <circle class="ring-fill" cx="20" cy="20" r="16" fill="none" stroke-width="4"
-                                        stroke-dasharray="{{ ring_offset }} 100.53" transform="rotate(-90 20 20)"/>
-                                <text x="20" y="23.5" class="ring-text">{{ uni.readiness_score }}%</text>
-                            </svg>
-                        </span>
-                        <span class="status-badge status-{{ uni.status | replace(' ', '-') | lower }}">{{ uni.status }}</span>
-                    </div>
+                <div class="app-card-header" style="background: color-mix(in srgb, {{ brand.primary }} 22%, var(--card-bg));">
+                    {{ campus_silhouette(brand.silhouette, brand.primary) }}
+                    <label class="compare-checkbox-label compact" title="Select for comparison">
+                        <input type="checkbox" class="compare-checkbox" value="{{ uni.id }}">
+                        <span class="visually-hidden">Compare {{ uni.name }}</span>
+                    </label>
                 </div>
-
-                <div class="progress-track">
-                    <div class="progress-fill" style="width: {{ uni.progress_percent }}%"></div>
-                </div>
-                <p class="progress-label">{{ uni.progress_percent }}% of checklist complete</p>
-
-                {% if uni.notes %}
-                <p class="uni-notes">{{ uni.notes }}</p>
-                {% endif %}
-
-                <ul class="checklist">
-                    {% for item in uni.checklist %}
-                    <li class="checklist-row">
-                        <form action="/checklist/toggle/{{ item.id }}" method="POST" class="inline-form checklist-item-form">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="checklist-item link-button {% if item.done %}checked{% endif %}">
-                                <span class="checkbox">{% if item.done %}&#10003;{% endif %}</span>
-                                {{ item.title }}
-                            </button>
-                        </form>
-                        <form action="/checklist/delete/{{ item.id }}" method="POST" class="inline-form">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="checklist-delete link-button" title="Remove task" aria-label="Remove task">&times;</button>
-                        </form>
-                    </li>
-                    {% endfor %}
-                </ul>
-                <form action="/checklist/add/{{ uni.id }}" method="POST" class="add-task-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="text" name="task" placeholder="Add a task">
-                    <button type="submit" class="btn-icon" aria-label="Add task">+</button>
-                </form>
-
-                <div class="card-footer">
-                    <form action="/status/{{ uni.id }}" method="POST" class="status-form">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <select name="status">
-                            {% for option in status_options %}
-                            <option value="{{ option }}" {% if option == uni.status %}selected{% endif %}>{{ option }}</option>
-                            {% endfor %}
-                        </select>
-                        <button type="submit" class="btn-secondary">Update</button>
-                    </form>
-                    <div class="card-actions">
-                        <a href="/university/{{ uni.id }}" class="edit-link">Profile</a>
-                        <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
-                        <form action="/duplicate/{{ uni.id }}" method="POST" class="inline-form">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="edit-link link-button">Duplicate</button>
-                        </form>
-                        <form action="/delete/{{ uni.id }}" method="POST" class="inline-form"
-                              onsubmit="return confirm('Delete {{ uni.name }}? You can undo this from the dashboard afterward.');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="delete-link link-button">Delete</button>
-                        </form>
+                <button type="button" class="app-card-body uni-select-trigger" aria-pressed="{{ 'true' if loop.first else 'false' }}" data-select-id="{{ uni.id }}">
+                    <div class="app-card-top">
+                        {{ crest(uni, brand, "crest-md") }}
+                        {{ ring(uni.readiness_score, readiness_class, 40) }}
                     </div>
-                </div>
+                    <h2 class="uni-name">{{ uni.name }}</h2>
+                    {% if brand.known %}
+                    <p class="app-card-location">{{ brand.location }}</p>
+                    {% endif %}
+                    <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
+                    <span class="status-badge status-{{ uni.status | replace(' ', '-') | lower }}">{{ uni.status }}</span>
+                    <p class="app-card-next">{{ uni.next_action }}</p>
+                    {% if brand.known %}
+                    <p class="app-card-identity">{{ brand.identity }}</p>
+                    {% endif %}
+                </button>
             </li>
             {% endfor %}
         </ul>
 
         {% if universities %}
-        <section class="doc-stack-section" aria-label="Selected application's documents">
+        <section class="workspace" aria-label="Selected application's workspace" aria-live="polite">
             {% for uni in universities %}
-            <div class="doc-stack-panel" data-doc-panel="{{ uni.id }}" {% if not loop.first %}hidden{% endif %}>
-                <h2 class="doc-stack-title">{{ uni.name }}'s application file</h2>
-                <p class="doc-stack-subtitle">Essays, recommendations, documents, and interviews for this application.</p>
-                {% if uni.doc_stack %}
-                <ul class="doc-stack">
-                    {% for item in uni.doc_stack %}
-                    <li class="doc-sheet {% if item.done %}is-done{% endif %}">
-                        <span class="doc-sheet-label">
-                            <span class="doc-sheet-check" aria-hidden="true">{% if item.done %}&#10003;{% endif %}</span>
-                            {{ item.label }}
-                        </span>
-                        <span class="doc-sheet-status">{{ item.status }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="doc-stack-empty">No essays, recommendations, documents, or interviews added yet - open the Profile page to add some.</p>
+            {% set brand = get_university_brand(uni.name) %}
+            <div class="workspace-panel" data-workspace-panel="{{ uni.id }}" {% if not loop.first %}hidden{% endif %}>
+                <div class="workspace-header">
+                    <div class="workspace-header-id">
+                        {{ crest(uni, brand, "crest-sm") }}
+                        <div>
+                            <h2 class="workspace-title">{{ uni.name }}</h2>
+                            <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
+                        </div>
+                    </div>
+                    <div class="workspace-header-actions">
+                        <form action="/status/{{ uni.id }}" method="POST" class="status-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <select name="status">
+                                {% for option in status_options %}
+                                <option value="{{ option }}" {% if option == uni.status %}selected{% endif %}>{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn-secondary">Update</button>
+                        </form>
+                        <div class="card-actions">
+                            <a href="/university/{{ uni.id }}" class="edit-link">Full profile</a>
+                            <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
+                            <form action="/duplicate/{{ uni.id }}" method="POST" class="inline-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="edit-link link-button">Duplicate</button>
+                            </form>
+                            <form action="/delete/{{ uni.id }}" method="POST" class="inline-form"
+                                  onsubmit="return confirm('Delete {{ uni.name }}? You can undo this from the dashboard afterward.');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="delete-link link-button">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {% if uni.notes %}
+                <p class="uni-notes">{{ uni.notes }}</p>
                 {% endif %}
-                <p class="doc-stack-next"><strong>Next action</strong>{{ uni.next_action }}</p>
+
+                <div class="workspace-columns">
+                    <div class="workspace-col">
+                        <h3 class="workspace-col-title">Checklist</h3>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: {{ uni.progress_percent }}%"></div>
+                        </div>
+                        <p class="progress-label">{{ uni.progress_percent }}% of checklist complete</p>
+                        <ul class="checklist">
+                            {% for item in uni.checklist %}
+                            <li class="checklist-row">
+                                <form action="/checklist/toggle/{{ item.id }}" method="POST" class="inline-form checklist-item-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="checklist-item link-button {% if item.done %}checked{% endif %}">
+                                        <span class="checkbox">{% if item.done %}&#10003;{% endif %}</span>
+                                        {{ item.title }}
+                                    </button>
+                                </form>
+                                <form action="/checklist/delete/{{ item.id }}" method="POST" class="inline-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="checklist-delete link-button" title="Remove task" aria-label="Remove task">&times;</button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <form action="/checklist/add/{{ uni.id }}" method="POST" class="add-task-form">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="text" name="task" placeholder="Add a task">
+                            <button type="submit" class="btn-icon" aria-label="Add task">+</button>
+                        </form>
+                    </div>
+
+                    <div class="workspace-col">
+                        <h3 class="workspace-col-title">Application packet</h3>
+                        {% if uni.tuition_cost is not none or uni.financial_aid_estimate is not none %}
+                        <div class="packet-cost-row">
+                            {% if uni.tuition_cost is not none %}<span class="stat">Tuition: <strong>${{ "%.0f"|format(uni.tuition_cost) }}</strong></span>{% endif %}
+                            {% if uni.financial_aid_estimate is not none %}<span class="stat">Aid: <strong>${{ "%.0f"|format(uni.financial_aid_estimate) }}</strong></span>{% endif %}
+                            {% if uni.net_cost is not none %}<span class="stat stat-highlight">Net: <strong>${{ "%.0f"|format(uni.net_cost) }}</strong></span>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% if uni.packet %}
+                        {% for section in uni.packet %}
+                        <div class="packet-section">
+                            <h4 class="packet-section-title">{{ section.label }}</h4>
+                            <ul class="doc-stack">
+                                {% for item in section.entries %}
+                                <li class="doc-sheet {% if item.done %}is-done{% endif %}">
+                                    <span class="doc-sheet-label">
+                                        <span class="doc-sheet-check" aria-hidden="true">{% if item.done %}&#10003;{% endif %}</span>
+                                        <span>
+                                            {{ item.label }}
+                                            {% if item.detail %}<span class="doc-sheet-detail">{{ item.detail }}</span>{% endif %}
+                                        </span>
+                                    </span>
+                                    <span class="doc-sheet-status">{{ item.status }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="doc-stack-empty">No essays, recommendations, documents, or interviews added yet.</p>
+                        {% endif %}
+                        <p class="doc-stack-next"><strong>Next action</strong>{{ uni.next_action }}</p>
+                        <a href="/university/{{ uni.id }}" class="btn-secondary workspace-profile-link">Open full profile &rarr;</a>
+                    </div>
+                </div>
             </div>
             {% endfor %}
         </section>
@@ -403,6 +448,8 @@
 
         compareCheckboxes.forEach(function (checkbox) {
             checkbox.addEventListener("change", updateCompareButton);
+            // Selecting a card for comparison shouldn't also open its workspace.
+            checkbox.addEventListener("click", function (e) { e.stopPropagation(); });
         });
 
         compareButton.addEventListener("click", function () {
@@ -432,7 +479,33 @@
 
         updateToggleLabel();
 
-        // --- Selected-application journey panel ---
+        // --- Utilities menu (Export CSV / reminders / dark mode / log out) ---
+        const utilitiesToggle = document.getElementById("utilities-toggle");
+        const utilitiesMenu = document.getElementById("utilities-menu");
+
+        function closeUtilitiesMenu() {
+            utilitiesMenu.hidden = true;
+            utilitiesToggle.setAttribute("aria-expanded", "false");
+        }
+
+        utilitiesToggle.addEventListener("click", function (e) {
+            e.stopPropagation();
+            const willOpen = utilitiesMenu.hidden;
+            utilitiesMenu.hidden = !willOpen;
+            utilitiesToggle.setAttribute("aria-expanded", String(willOpen));
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!utilitiesMenu.hidden && !utilitiesMenu.contains(e.target) && e.target !== utilitiesToggle) {
+                closeUtilitiesMenu();
+            }
+        });
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") closeUtilitiesMenu();
+        });
+
+        // --- Selected-application workspace + journey panel ---
         const uniCards = document.querySelectorAll(".uni-card");
         const journey = document.querySelector(".hero-journey");
         const selectedName = document.getElementById("selected-app-name");
@@ -447,8 +520,8 @@
                 const trigger = card.querySelector(".uni-select-trigger");
                 if (trigger) trigger.setAttribute("aria-pressed", String(isMatch));
             });
-            document.querySelectorAll(".doc-stack-panel").forEach(function (panel) {
-                panel.hidden = panel.dataset.docPanel !== String(id);
+            document.querySelectorAll(".workspace-panel").forEach(function (panel) {
+                panel.hidden = panel.dataset.workspacePanel !== String(id);
             });
             if (matchedCard && selectedName && selectedMeta) {
                 selectedName.textContent = matchedCard.dataset.name;
@@ -462,6 +535,7 @@
             if (trigger) {
                 trigger.addEventListener("click", function () {
                     selectUniversity(card.dataset.uniId);
+                    document.querySelector(".workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
                 });
             }
         });

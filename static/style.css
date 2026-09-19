@@ -185,53 +185,6 @@ h2 {
     min-width: 160px;
 }
 
-.uni-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.uni-card {
-    position: relative;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    border-top-right-radius: 0;
-    padding: 22px 24px;
-    box-shadow: var(--shadow);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.uni-card::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 0 16px 16px 0;
-    border-color: transparent var(--bg) transparent transparent;
-    filter: drop-shadow(-1px 1px 1px rgba(22, 33, 62, 0.1));
-}
-
-.uni-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-hover);
-    border-color: transparent;
-}
-
-.uni-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
 .uni-name {
     font-family: var(--font-display);
     color: var(--text);
@@ -272,13 +225,6 @@ h2 {
     background: transparent;
     white-space: nowrap;
     transform: rotate(-1.5deg);
-}
-
-.uni-top-badges {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
 }
 
 .readiness-badge {
@@ -552,16 +498,6 @@ h2 {
 
 .btn-icon:hover {
     background: var(--border);
-}
-
-.card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
 }
 
 .status-form {
@@ -1211,16 +1147,18 @@ h2 {
         font-size: 1.25rem;
     }
 
-    .uni-card,
+    .app-card-body,
     .add-form {
         padding: 16px;
     }
 
-    .uni-top {
-        flex-wrap: wrap;
+    .workspace-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
     }
 
-    .card-footer {
+    .workspace-header-actions {
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
@@ -1334,19 +1272,14 @@ h2 {
     margin: 0 0 14px;
 }
 
-.dashboard-hero {
+.hero-canvas {
     position: relative;
     display: grid;
     grid-template-columns: 1.05fr 0.95fr;
     gap: 36px;
     align-items: center;
-    padding: 40px 44px;
-    margin-bottom: 32px;
-    border-radius: var(--radius);
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    overflow: hidden;
+    padding: 8px 0 36px;
+    margin-bottom: 8px;
 }
 
 .hero-date {
@@ -1372,7 +1305,6 @@ h2 {
 .hero-heading-navy {
     color: var(--text);
     display: block;
-    text-shadow: 0 0 1.5px color-mix(in srgb, currentColor 40%, transparent);
 }
 
 .hero-heading-accent {
@@ -1400,6 +1332,13 @@ h2 {
     margin: 0 0 20px;
     font-size: 1rem;
     line-height: 1.55;
+}
+
+.hero-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
 .hero-deadline-chip {
@@ -1540,58 +1479,151 @@ h2 {
 }
 
 /* ============================================================
-   University cards: brand identity, ring, silhouette, selection
+   University application grid: compact cards, one per school
    ============================================================ */
 
-.uni-select-trigger {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: none;
-    border: none;
+.uni-list {
+    list-style: none;
     padding: 0;
-    margin: 0;
-    cursor: pointer;
-    font: inherit;
-    text-align: left;
+    margin: 0 0 32px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
 }
 
-.uni-crest {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--crest-primary, var(--accent));
-    color: #fff;
-    font-family: var(--font-mono);
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    border: 1.5px solid var(--crest-secondary, transparent);
+.uni-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-.uni-crest-img {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #fff;
-    border: 1.5px solid var(--border);
-    object-fit: contain;
-    padding: 3px;
-}
-
-.uni-identity {
-    font-size: 0.76rem;
-    color: var(--text-muted);
-    margin: 3px 0 0;
+.uni-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
 }
 
 .uni-card.is-selected {
     border-color: var(--select-color, var(--accent));
     box-shadow: var(--shadow-hover);
+}
+
+.app-card-header {
+    position: relative;
+    height: 40px;
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 6px;
+}
+
+.app-card-silhouette {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.compare-checkbox-label.compact {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    margin: 0;
+}
+
+.app-card-body {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 14px 16px 16px;
+    margin: 0;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    color: inherit;
+}
+
+.app-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.app-card-location {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 2px 0 0;
+}
+
+.app-card-next {
+    font-size: 0.82rem;
+    color: var(--text);
+    margin: 8px 0 0;
+}
+
+.app-card-identity {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 4px 0 0;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+}
+
+/* Crests: a real logo/seal keeps its own shape (no forced circle crop) and
+   gets a plain white backing plate; an initials fallback needs the colored
+   circle for legibility, since there's no artwork to carry the identity. */
+.crest {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.crest-md {
+    width: 52px;
+    height: 52px;
+}
+
+.crest-sm {
+    width: 36px;
+    height: 36px;
+}
+
+.crest-initials {
+    border-radius: 50%;
+    background: var(--crest-primary, var(--accent));
+    color: #fff;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1.5px solid var(--crest-secondary, transparent);
+}
+
+.crest-initials.crest-md {
+    font-size: 0.9rem;
+}
+
+.crest-initials.crest-sm {
+    font-size: 0.62rem;
+}
+
+.crest-real {
+    background: #fff;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    object-fit: contain;
+    padding: 4px;
 }
 
 .ring-wrap {
@@ -1628,61 +1660,193 @@ h2 {
     text-anchor: middle;
 }
 
-.uni-silhouette {
+/* ============================================================
+   Simplified nav + compact utilities menu
+   ============================================================ */
+
+.app-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.app-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.app-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    flex-wrap: wrap;
+}
+
+.app-nav-link {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+}
+
+.app-nav-link:hover {
+    color: var(--text);
+}
+
+.app-nav-link.is-active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+}
+
+.app-nav-utilities {
+    position: relative;
+}
+
+.utilities-menu {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    width: 54px;
-    height: 29px;
-    opacity: 0.14;
-    pointer-events: none;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-hover);
+    padding: 6px;
+}
+
+.utilities-menu[hidden] {
+    display: none;
+}
+
+.utilities-menu-item {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-family: inherit;
+    text-align: left;
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.utilities-menu-item:hover {
+    background: var(--neutral-bg);
 }
 
 /* ============================================================
-   Application document stack
+   Selected-application workspace (shared panel below the grid)
    ============================================================ */
 
-.doc-stack-section {
-    margin: 28px 0 32px;
+.workspace {
+    margin: 0 0 32px;
 }
 
-.doc-stack-panel {
+.workspace-panel {
     position: relative;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    border-top-right-radius: 0;
-    padding: 20px 22px;
+    padding: 22px 24px;
     box-shadow: var(--shadow);
 }
 
-.doc-stack-panel::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 0 14px 14px 0;
-    border-color: transparent var(--bg) transparent transparent;
-    filter: drop-shadow(-1px 1px 1px rgba(22, 33, 62, 0.1));
-}
-
-.doc-stack-panel[hidden] {
+.workspace-panel[hidden] {
     display: none;
 }
 
-.doc-stack-title {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    margin: 0 0 4px;
+.workspace-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
 }
 
-.doc-stack-subtitle {
-    font-size: 0.8rem;
+.workspace-header-id {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.workspace-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.workspace-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.workspace-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    align-items: start;
+}
+
+.workspace-col-title {
+    font-size: 1rem;
+    margin: 0 0 10px;
+}
+
+.workspace-profile-link {
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.packet-cost-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.packet-section {
+    margin-bottom: 16px;
+}
+
+.packet-section-title {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     color: var(--text-muted);
-    margin: 0 0 16px;
+    margin: 0 0 8px;
+}
+
+.doc-sheet-detail {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 1px;
 }
 
 .doc-stack {
@@ -1831,13 +1995,33 @@ h2 {
 }
 
 /* ============================================================
+   Application grid: 3 columns large screens, 2 tablets, 1 mobile
+   ============================================================ */
+
+@media (max-width: 900px) {
+    .uni-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .uni-list {
+        grid-template-columns: 1fr;
+    }
+
+    .workspace-columns {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+/* ============================================================
    Mobile: stack hero text above the journey illustration
    ============================================================ */
 
 @media (max-width: 600px) {
-    .dashboard-hero {
+    .hero-canvas {
         grid-template-columns: 1fr;
-        padding: 24px 20px;
         gap: 24px;
     }
 
@@ -1853,10 +2037,5 @@ h2 {
 
     .doc-sheet {
         flex-wrap: wrap;
-    }
-
-    .uni-silhouette {
-        width: 40px;
-        height: 22px;
     }
 }

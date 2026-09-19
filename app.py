@@ -450,21 +450,36 @@ def next_action_for(uni):
             return f'Interview: {interview["status"]}'
     return "All caught up"
 
-def doc_stack_for(uni):
-    """Flattens one university's real essay/recommendation/document/interview
-    tasks into a single ordered list for the dashboard's layered-paper
-    document-stack view. 'done' mirrors each task type's own terminal status
-    from TASK_STATUS_PROGRESS (Final/Received/Submitted/Completed)."""
-    items = []
-    for essay in uni["essays"]:
-        items.append({"label": essay["title"] or "Essay", "status": essay["status"], "done": essay["status"] == "Final"})
-    for rec in uni["recommendations"]:
-        items.append({"label": rec["title"] or "Recommendation", "status": rec["status"], "done": rec["status"] == "Received"})
-    for document in uni["documents"]:
-        items.append({"label": document["title"] or "Document", "status": document["status"], "done": document["status"] == "Submitted"})
-    for interview in uni["interviews"]:
-        items.append({"label": interview["title"] or "Interview", "status": interview["status"], "done": interview["status"] == "Completed"})
-    return items
+def application_packet_for(uni):
+    """Groups one university's real essay/recommendation/document/interview
+    tasks into labeled sections for the dashboard workspace's 'application
+    packet' view - the same underlying data the full Profile page manages,
+    just summarized. 'done' mirrors each task type's own terminal status
+    from TASK_STATUS_PROGRESS (Final/Received/Submitted/Completed). Empty
+    sections are omitted rather than shown as empty."""
+    def section(label, tasks, done_status, detail_fn):
+        items = [
+            {
+                "label": task["title"] or label,
+                "status": task["status"],
+                "done": task["status"] == done_status,
+                "detail": detail_fn(task),
+            }
+            for task in tasks
+        ]
+        return {"label": label, "entries": items} if items else None
+
+    sections = [
+        section("Essays", uni["essays"], "Final",
+                lambda t: f'{t["word_count"]} words' if t["word_count"] else None),
+        section("Recommendations", uni["recommendations"], "Received",
+                lambda t: t["recommender_name"] or None),
+        section("Documents", uni["documents"], "Submitted",
+                lambda t: t["file_name"] or None),
+        section("Interviews", uni["interviews"], "Completed",
+                lambda t: f'Due {t["due_date"]}' if t["due_date"] else None),
+    ]
+    return [s for s in sections if s]
 
 def days_remaining_text(deadline_str):
     days_left = days_left_int(deadline_str)
@@ -618,8 +633,7 @@ def home():
             "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'recommendation'", (row["id"],)
         ))
         documents = dictrows(conn.execute(
-            "SELECT id, university_id, title, status FROM tasks WHERE university_id = ? AND task_type = 'document'",
-            (row["id"],)
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'document'", (row["id"],)
         ))
         interviews = dictrows(conn.execute(
             "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'interview'", (row["id"],)
@@ -643,12 +657,19 @@ def home():
             "progress_percent": progress_percent,
             "readiness_score": compute_readiness_score(checklist, essays, recommendations, documents, interviews),
             "notes": row["notes"],
+            "program": row["program"],
+            "tuition_cost": row["tuition_cost"],
+            "financial_aid_estimate": row["financial_aid_estimate"],
         })
     conn.close()
 
     for uni in universities:
         uni["next_action"] = next_action_for(uni)
-        uni["doc_stack"] = doc_stack_for(uni)
+        uni["packet"] = application_packet_for(uni)
+        if uni["tuition_cost"] is not None and uni["financial_aid_estimate"] is not None:
+            uni["net_cost"] = uni["tuition_cost"] - uni["financial_aid_estimate"]
+        else:
+            uni["net_cost"] = None
 
     status_counts = {option: 0 for option in STATUS_OPTIONS}
     for uni in universities:
