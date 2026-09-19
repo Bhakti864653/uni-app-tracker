@@ -1473,7 +1473,7 @@ h2 {
 
 .journey-plane {
     fill: var(--journey-accent, var(--accent));
-    offset-path: path("M95,236 C 140,150 198,110 260,110 S 332,140 347,196");
+    offset-path: path("M95,236 C 150,170 175,175 200,165 C 225,155 250,125 272,110 C 300,125 335,155 347,196");
     offset-distance: 0%;
     offset-rotate: auto;
     animation: journey-plane-fly 7s ease-in-out infinite;
@@ -1497,8 +1497,8 @@ h2 {
     position: absolute;
     top: 4%;
     left: 4%;
-    width: 138px;
-    padding: 10px 12px;
+    width: min(140px, 42%);
+    padding: 8px 10px;
     background: color-mix(in srgb, var(--card-bg) 97%, transparent);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -1508,29 +1508,35 @@ h2 {
 .selected-app-eyebrow {
     display: block;
     font-family: var(--font-mono);
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 .selected-app-name {
-    display: block;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     line-height: 1.2;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     overflow-wrap: break-word;
 }
 
 .selected-app-meta {
     display: block;
-    font-size: 0.66rem;
-    line-height: 1.4;
+    font-size: 0.64rem;
+    line-height: 1.3;
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ============================================================
@@ -1809,6 +1815,22 @@ h2 {
 }
 
 /* ============================================================
+   Narrower hero: the fixed-size label stops floating over the art
+   before the shrinking illustration is small enough for it to
+   crowd the path/milestones. This is a wider breakpoint than the
+   dashboard-hero's own column stack (600px) on purpose - the label
+   needs room well before the two-column layout itself breaks.
+   ============================================================ */
+
+@media (max-width: 860px) {
+    .selected-app-label {
+        position: static;
+        width: auto;
+        margin-top: 14px;
+    }
+}
+
+/* ============================================================
    Mobile: stack hero text above the journey illustration
    ============================================================ */
 
@@ -1821,12 +1843,6 @@ h2 {
 
     .hero-journey {
         order: 2;
-    }
-
-    .selected-app-label {
-        position: static;
-        width: auto;
-        margin-top: 14px;
     }
 
     .hero-deadline-chip {
