@@ -84,20 +84,53 @@
             const statusData = {{ status_counts | tojson }};
             const universities = {{ universities | tojson }};
 
+            const rootStyles = getComputedStyle(document.documentElement);
+            const cssVar = (name) => rootStyles.getPropertyValue(name).trim();
+            const textColor = cssVar("--text");
+            const mutedColor = cssVar("--text-muted");
+            const gridColor = cssVar("--border");
+
+            Chart.defaults.font.family = "'Public Sans', -apple-system, sans-serif";
+            Chart.defaults.color = mutedColor;
+
+            const totalUniversities = Object.values(statusData).reduce((sum, n) => sum + n, 0);
+
+            const centerTextPlugin = {
+                id: "centerText",
+                afterDraw(chart) {
+                    if (chart.config.type !== "doughnut") return;
+                    const { ctx, chartArea: { width, height, left, top } } = chart;
+                    ctx.save();
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.font = "600 26px 'Fraunces', Georgia, serif";
+                    ctx.fillStyle = textColor;
+                    ctx.fillText(String(totalUniversities), left + width / 2, top + height / 2 - 7);
+                    ctx.font = "500 10px 'IBM Plex Mono', monospace";
+                    ctx.fillStyle = mutedColor;
+                    ctx.fillText(totalUniversities === 1 ? "SCHOOL" : "SCHOOLS", left + width / 2, top + height / 2 + 14);
+                    ctx.restore();
+                },
+            };
+
             new Chart(document.getElementById("statusChart"), {
                 type: "doughnut",
                 data: {
                     labels: Object.keys(statusData),
                     datasets: [{
                         data: Object.values(statusData),
-                        backgroundColor: ["#7a7466", "#a16e2b", "#4c6b52"],
+                        backgroundColor: [cssVar("--neutral"), cssVar("--warning"), cssVar("--success")],
+                        borderColor: cssVar("--card-bg"),
+                        borderWidth: 2,
                     }],
                 },
                 options: {
+                    cutout: "72%",
                     plugins: {
-                        legend: { position: "bottom", labels: { color: "#71717a" } },
+                        legend: { position: "bottom", labels: { color: mutedColor, usePointStyle: true, boxWidth: 8 } },
                     },
                 },
+                plugins: [centerTextPlugin],
             });
 
             new Chart(document.getElementById("progressChart"), {
@@ -107,8 +140,9 @@
                     datasets: [{
                         label: "Checklist % complete",
                         data: universities.map(u => u.progress_percent),
-                        backgroundColor: "#b8863b",
-                        borderRadius: 4,
+                        backgroundColor: cssVar("--accent"),
+                        borderRadius: 5,
+                        maxBarThickness: 36,
                     }],
                 },
                 options: {
@@ -116,12 +150,12 @@
                         y: {
                             beginAtZero: true,
                             max: 100,
-                            ticks: { color: "#71717a" },
-                            grid: { color: "rgba(92, 100, 120, 0.15)" },
+                            ticks: { color: mutedColor },
+                            grid: { color: gridColor },
                         },
                         x: {
-                            ticks: { color: "#71717a" },
-                            grid: { color: "rgba(92, 100, 120, 0.08)" },
+                            ticks: { color: mutedColor },
+                            grid: { display: false },
                         },
                     },
                     plugins: { legend: { display: false } },

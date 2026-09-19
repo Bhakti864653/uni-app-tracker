@@ -1306,3 +1306,541 @@ h2 {
         text-align: left;
     }
 }
+
+/* ============================================================
+   Dashboard hero: "Your route to decision day."
+   ============================================================ */
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.page-dashboard {
+    max-width: 960px;
+}
+
+.section-heading {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 14px;
+}
+
+.dashboard-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 36px;
+    align-items: center;
+    padding: 40px 44px;
+    margin-bottom: 32px;
+    border-radius: var(--radius);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.hero-date {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+
+.hero-heading {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 1.2rem + 2.6vw, 3rem);
+    line-height: 1.06;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+    text-wrap: balance;
+}
+
+.hero-heading-navy {
+    color: var(--text);
+    display: block;
+    text-shadow: 0 0 1.5px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.hero-heading-accent {
+    color: var(--danger);
+    display: inline-block;
+    position: relative;
+}
+
+.hero-heading-accent::after {
+    content: "";
+    position: absolute;
+    left: -2px;
+    right: -3px;
+    bottom: 3px;
+    height: 0.3em;
+    background: color-mix(in srgb, var(--accent) 55%, transparent);
+    z-index: -1;
+    border-radius: 3px;
+    transform: rotate(-0.7deg);
+}
+
+.hero-copy {
+    color: var(--text-muted);
+    max-width: 440px;
+    margin: 0 0 20px;
+    font-size: 1rem;
+    line-height: 1.55;
+}
+
+.hero-deadline-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.hero-deadline-chip strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.hero-journey {
+    position: relative;
+}
+
+.hero-journey svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(4px 8px 14px rgba(22, 33, 62, 0.14));
+}
+
+.journey-hill {
+    fill: color-mix(in srgb, var(--accent) 14%, var(--bg));
+}
+
+.journey-building {
+    fill: var(--card-bg);
+    stroke: var(--border);
+    stroke-width: 1.5;
+}
+
+.journey-building-line {
+    stroke: var(--text-muted);
+    stroke-width: 1.2;
+    opacity: 0.55;
+}
+
+.journey-path {
+    fill: none;
+    stroke: var(--journey-accent, var(--accent));
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 2 8;
+    transition: stroke 0.3s ease;
+}
+
+.journey-milestone-dot {
+    fill: var(--card-bg);
+    stroke: var(--journey-accent, var(--accent));
+    stroke-width: 2.5;
+    transition: stroke 0.3s ease;
+}
+
+.journey-milestone-label {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    fill: var(--text-muted);
+}
+
+.journey-plane {
+    fill: var(--journey-accent, var(--accent));
+    offset-path: path("M95,236 C 140,150 198,110 260,110 S 332,140 347,196");
+    offset-distance: 0%;
+    offset-rotate: auto;
+    animation: journey-plane-fly 7s ease-in-out infinite;
+    transition: fill 0.3s ease;
+}
+
+@keyframes journey-plane-fly {
+    0%   { offset-distance: 0%; }
+    50%  { offset-distance: 100%; }
+    100% { offset-distance: 0%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .journey-plane {
+        animation: none;
+        offset-distance: 50%;
+    }
+}
+
+.selected-app-label {
+    position: absolute;
+    top: 4%;
+    left: 4%;
+    width: 138px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--card-bg) 97%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-hover);
+}
+
+.selected-app-eyebrow {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.selected-app-name {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    color: var(--text);
+    margin-bottom: 4px;
+    overflow-wrap: break-word;
+}
+
+.selected-app-meta {
+    display: block;
+    font-size: 0.66rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+}
+
+/* ============================================================
+   University cards: brand identity, ring, silhouette, selection
+   ============================================================ */
+
+.uni-select-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.uni-crest {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--crest-primary, var(--accent));
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1.5px solid var(--crest-secondary, transparent);
+}
+
+.uni-crest-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    object-fit: contain;
+    padding: 3px;
+}
+
+.uni-identity {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin: 3px 0 0;
+}
+
+.uni-card.is-selected {
+    border-color: var(--select-color, var(--accent));
+    box-shadow: var(--shadow-hover);
+}
+
+.ring-wrap {
+    flex-shrink: 0;
+    display: block;
+}
+
+.ring-track {
+    stroke: var(--border);
+}
+
+.ring-fill {
+    stroke: var(--accent);
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.4s ease;
+}
+
+.ring-wrap.readiness-high .ring-fill {
+    stroke: var(--success);
+}
+
+.ring-wrap.readiness-medium .ring-fill {
+    stroke: var(--warning);
+}
+
+.ring-wrap.readiness-low .ring-fill {
+    stroke: var(--danger);
+}
+
+.ring-text {
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    fill: var(--text);
+    text-anchor: middle;
+}
+
+.uni-silhouette {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 54px;
+    height: 29px;
+    opacity: 0.14;
+    pointer-events: none;
+}
+
+/* ============================================================
+   Application document stack
+   ============================================================ */
+
+.doc-stack-section {
+    margin: 28px 0 32px;
+}
+
+.doc-stack-panel {
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    border-top-right-radius: 0;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+}
+
+.doc-stack-panel::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 14px 14px 0;
+    border-color: transparent var(--bg) transparent transparent;
+    filter: drop-shadow(-1px 1px 1px rgba(22, 33, 62, 0.1));
+}
+
+.doc-stack-panel[hidden] {
+    display: none;
+}
+
+.doc-stack-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    margin: 0 0 4px;
+}
+
+.doc-stack-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 16px;
+}
+
+.doc-stack {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.doc-sheet {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+}
+
+.doc-sheet:nth-child(odd) {
+    transform: rotate(-0.35deg);
+}
+
+.doc-sheet:nth-child(even) {
+    transform: rotate(0.35deg);
+}
+
+.doc-sheet-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    min-width: 0;
+    overflow-wrap: break-word;
+}
+
+.doc-sheet-check {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    line-height: 1;
+    color: transparent;
+}
+
+.doc-sheet.is-done .doc-sheet-check {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+}
+
+.doc-sheet-status {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.doc-stack-empty {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.doc-stack-next {
+    position: relative;
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text);
+}
+
+.doc-stack-next strong {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 3px;
+}
+
+/* ============================================================
+   Pipeline: stage-dominant layered files
+   ============================================================ */
+
+.pipeline-column-not-started h2 {
+    color: var(--neutral);
+    border-bottom: 2px solid var(--neutral);
+    padding-bottom: 10px;
+}
+
+.pipeline-column-in-progress h2 {
+    color: var(--warning);
+    border-bottom: 2px solid var(--warning);
+    padding-bottom: 10px;
+}
+
+.pipeline-column-submitted h2 {
+    color: var(--success);
+    border-bottom: 2px solid var(--success);
+    padding-bottom: 10px;
+}
+
+.pipeline-card {
+    border-left: 3px solid var(--border);
+}
+
+.pipeline-column-not-started .pipeline-card {
+    border-left-color: var(--neutral);
+}
+
+.pipeline-column-in-progress .pipeline-card {
+    border-left-color: var(--warning);
+}
+
+.pipeline-column-submitted .pipeline-card {
+    border-left-color: var(--success);
+}
+
+/* ============================================================
+   Mobile: stack hero text above the journey illustration
+   ============================================================ */
+
+@media (max-width: 600px) {
+    .dashboard-hero {
+        grid-template-columns: 1fr;
+        padding: 24px 20px;
+        gap: 24px;
+    }
+
+    .hero-journey {
+        order: 2;
+    }
+
+    .selected-app-label {
+        position: static;
+        width: auto;
+        margin-top: 14px;
+    }
+
+    .hero-deadline-chip {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .doc-sheet {
+        flex-wrap: wrap;
+    }
+
+    .uni-silhouette {
+        width: 40px;
+        height: 22px;
+    }
+}

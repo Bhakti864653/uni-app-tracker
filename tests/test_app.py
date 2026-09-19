@@ -88,7 +88,10 @@ def test_delete_university_removes_it(logged_in_client, csrf_token):
     html = response.data.decode()
 
     # Find MIT's specific delete form, not just the first one on the page
-    mit_section = html.split(">MIT<")[1]
+    # rsplit(..., 1): the dashboard hero's "next deadline" chip also renders
+    # the name (e.g. "Next up: <strong>MIT</strong>"), so the *last* match is
+    # the one that's actually inside the real university card.
+    mit_section = html.rsplit(">MIT<", 1)[1]
     university_id = mit_section.split('action="/delete/')[1].split('"')[0]
 
     logged_in_client.post(f"/delete/{university_id}", data={"csrf_token": csrf_token})
@@ -138,7 +141,10 @@ def test_delete_university_can_be_undone(logged_in_client, csrf_token):
     logged_in_client.post("/add", data={"name": "MIT", "deadline": "2027-01-01", "csrf_token": csrf_token})
     response = logged_in_client.get("/dashboard")
     html = response.data.decode()
-    mit_section = html.split(">MIT<")[1]
+    # rsplit(..., 1): the dashboard hero's "next deadline" chip also renders
+    # the name (e.g. "Next up: <strong>MIT</strong>"), so the *last* match is
+    # the one that's actually inside the real university card.
+    mit_section = html.rsplit(">MIT<", 1)[1]
     university_id = mit_section.split('action="/delete/')[1].split('"')[0]
 
     delete_response = logged_in_client.post(f"/delete/{university_id}", data={"csrf_token": csrf_token})
@@ -162,7 +168,7 @@ def test_restore_requires_ownership(client, csrf_token):
     client.post("/add", data={"name": "Private University", "deadline": "2027-01-01", "csrf_token": csrf_token})
     response = client.get("/dashboard")
     html = response.data.decode()
-    section = html.split(">Private University<")[1]
+    section = html.rsplit(">Private University<", 1)[1]
     university_id = section.split('action="/delete/')[1].split('"')[0]
     client.post(f"/delete/{university_id}", data={"csrf_token": csrf_token})
     client.post("/logout", data={"csrf_token": csrf_token})
@@ -181,7 +187,10 @@ def test_duplicate_university_copies_checklist(logged_in_client, csrf_token):
     logged_in_client.post("/add", data={"name": "MIT", "deadline": "2027-01-01", "csrf_token": csrf_token})
     response = logged_in_client.get("/dashboard")
     html = response.data.decode()
-    mit_section = html.split(">MIT<")[1]
+    # rsplit(..., 1): the dashboard hero's "next deadline" chip also renders
+    # the name (e.g. "Next up: <strong>MIT</strong>"), so the *last* match is
+    # the one that's actually inside the real university card.
+    mit_section = html.rsplit(">MIT<", 1)[1]
     university_id = mit_section.split('action="/duplicate/')[1].split('"')[0]
 
     duplicate_response = logged_in_client.post(f"/duplicate/{university_id}", data={"csrf_token": csrf_token})
@@ -254,7 +263,10 @@ def test_deleted_university_excluded_from_exports(logged_in_client, csrf_token):
     logged_in_client.post("/add", data={"name": "MIT", "deadline": "2027-01-01", "csrf_token": csrf_token})
     response = logged_in_client.get("/dashboard")
     html = response.data.decode()
-    mit_section = html.split(">MIT<")[1]
+    # rsplit(..., 1): the dashboard hero's "next deadline" chip also renders
+    # the name (e.g. "Next up: <strong>MIT</strong>"), so the *last* match is
+    # the one that's actually inside the real university card.
+    mit_section = html.rsplit(">MIT<", 1)[1]
     university_id = mit_section.split('action="/delete/')[1].split('"')[0]
     logged_in_client.post(f"/delete/{university_id}", data={"csrf_token": csrf_token})
 

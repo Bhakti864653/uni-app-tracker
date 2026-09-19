@@ -26,7 +26,7 @@
 
         <div class="pipeline-board">
             {% for status in status_options %}
-            <div class="pipeline-column">
+            <div class="pipeline-column pipeline-column-{{ status | replace(' ', '-') | lower }}">
                 <h2>{{ status }} <span class="pipeline-count">{{ columns[status] | length }}</span></h2>
 
                 {% if not columns[status] %}

@@ -17,6 +17,8 @@ from urllib.parse import quote
 from collections import defaultdict
 from datetime import date, timedelta, datetime, timezone
 
+from university_brands import get_university_brand
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -422,6 +424,48 @@ def build_suggestions(universities, limit=6):
     suggestions.sort(key=lambda s: s["days_left"])
     return suggestions[:limit]
 
+def next_action_for(uni):
+    """The single most useful next step for one university, in the same
+    priority order as build_suggestions (checklist, then essay, then
+    recommendation, then document, then interview). Used by the dashboard's
+    hero/selected-application panel, which always needs exactly one action
+    for whichever university is selected, not a ranked top-N across all of
+    them."""
+    if uni["status"] == "Submitted":
+        return "Submitted - nothing left to do"
+    for item in uni["checklist"]:
+        if not item["done"]:
+            return f'Finish "{item["title"]}"'
+    for essay in uni["essays"]:
+        if essay["status"] != "Final":
+            return f'Essay: {essay["status"]}'
+    for rec in uni["recommendations"]:
+        if rec["status"] != "Received":
+            return f'Recommendation: {rec["status"]}'
+    for document in uni["documents"]:
+        if document["status"] != "Submitted":
+            return f'{document["title"]}: {document["status"]}'
+    for interview in uni["interviews"]:
+        if interview["status"] != "Completed":
+            return f'Interview: {interview["status"]}'
+    return "All caught up"
+
+def doc_stack_for(uni):
+    """Flattens one university's real essay/recommendation/document/interview
+    tasks into a single ordered list for the dashboard's layered-paper
+    document-stack view. 'done' mirrors each task type's own terminal status
+    from TASK_STATUS_PROGRESS (Final/Received/Submitted/Completed)."""
+    items = []
+    for essay in uni["essays"]:
+        items.append({"label": essay["title"] or "Essay", "status": essay["status"], "done": essay["status"] == "Final"})
+    for rec in uni["recommendations"]:
+        items.append({"label": rec["title"] or "Recommendation", "status": rec["status"], "done": rec["status"] == "Received"})
+    for document in uni["documents"]:
+        items.append({"label": document["title"] or "Document", "status": document["status"], "done": document["status"] == "Submitted"})
+    for interview in uni["interviews"]:
+        items.append({"label": interview["title"] or "Interview", "status": interview["status"], "done": interview["status"] == "Completed"})
+    return items
+
 def days_remaining_text(deadline_str):
     days_left = days_left_int(deadline_str)
     if days_left < 0:
@@ -455,6 +499,16 @@ def generate_csrf_token():
     return session["csrf_token"]
 
 app.jinja_env.globals["csrf_token"] = generate_csrf_token
+app.jinja_env.globals["get_university_brand"] = get_university_brand
+
+def hero_date_label():
+    # Avoids the "%-d" (Linux/macOS) vs "%#d" (Windows) strftime mismatch
+    # for a no-leading-zero day number, so this renders identically in local
+    # dev (Windows) and production (Render, Linux).
+    today = date.today()
+    return f"{today.strftime('%A, %B')} {today.day}"
+
+app.jinja_env.globals["hero_date_label"] = hero_date_label
 
 @app.before_request
 def check_csrf():
@@ -591,6 +645,10 @@ def home():
             "notes": row["notes"],
         })
     conn.close()
+
+    for uni in universities:
+        uni["next_action"] = next_action_for(uni)
+        uni["doc_stack"] = doc_stack_for(uni)
 
     status_counts = {option: 0 for option in STATUS_OPTIONS}
     for uni in universities:
