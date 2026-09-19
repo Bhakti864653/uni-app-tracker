@@ -1,549 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>University Application Tracker</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-        (function () {
-            const saved = localStorage.getItem("theme");
-            if (saved) document.documentElement.setAttribute("data-theme", saved);
-        })();
-    </script>
-</head>
-<body>
-    {% macro campus_silhouette(kind, color) %}
-    {% if kind == "skyline" %}
-    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <rect x="2" y="14" width="8" height="18" fill="{{ color }}"/>
-        <rect x="12" y="6" width="9" height="26" fill="{{ color }}"/>
-        <rect x="23" y="18" width="7" height="14" fill="{{ color }}"/>
-        <rect x="32" y="10" width="8" height="22" fill="{{ color }}"/>
-        <rect x="42" y="16" width="7" height="16" fill="{{ color }}"/>
-        <rect x="51" y="4" width="8" height="28" fill="{{ color }}"/>
-    </svg>
-    {% elif kind == "river" %}
-    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <path d="M0 24 Q 15 14 30 24 T 60 22" fill="none" stroke="{{ color }}" stroke-width="2.5"/>
-        <rect x="6" y="4" width="12" height="14" fill="{{ color }}"/>
-        <rect x="24" y="8" width="10" height="10" fill="{{ color }}"/>
-        <path d="M40 18 L48 4 L56 18 Z" fill="{{ color }}"/>
-    </svg>
-    {% elif kind == "tower" %}
-    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <rect x="24" y="2" width="12" height="24" fill="{{ color }}"/>
-        <path d="M24 2 L30 -4 L36 2 Z" fill="{{ color }}" transform="translate(0,6)"/>
-        <rect x="4" y="20" width="16" height="12" fill="{{ color }}" opacity="0.8"/>
-        <rect x="40" y="20" width="16" height="12" fill="{{ color }}" opacity="0.8"/>
-    </svg>
-    {% elif kind == "trees" %}
-    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <circle cx="10" cy="14" r="9" fill="{{ color }}"/>
-        <rect x="8.5" y="20" width="3" height="10" fill="{{ color }}"/>
-        <circle cx="28" cy="10" r="11" fill="{{ color }}"/>
-        <rect x="26.5" y="18" width="3" height="12" fill="{{ color }}"/>
-        <circle cx="47" cy="15" r="8" fill="{{ color }}"/>
-        <rect x="45.5" y="21" width="3" height="9" fill="{{ color }}"/>
-    </svg>
-    {% else %}
-    <svg class="app-card-silhouette" viewBox="0 0 60 32" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-        <path d="M4 30 L4 12 L18 4 L32 12 L32 30 Z" fill="{{ color }}"/>
-        <rect x="38" y="16" width="18" height="14" fill="{{ color }}" opacity="0.75"/>
-    </svg>
-    {% endif %}
-    {% endmacro %}
+{% extends "base_app.html" %}
+{% set active_page = "overview" %}
 
-    {% macro crest(uni, brand, size_class) %}
-    {% if brand.logo %}
-    <img src="{{ url_for('static', filename=brand.logo) }}" alt="{{ uni.name }} official seal" class="crest crest-real {{ size_class }}">
-    {% else %}
-    <span class="crest crest-initials {{ size_class }}" style="--crest-primary: {{ brand.primary }}; --crest-secondary: {{ brand.secondary }};" aria-hidden="true">{{ brand.initials }}</span>
-    {% endif %}
-    {% endmacro %}
+{% block title %}Overview · admit.{% endblock %}
+{% block crumb %}Your application command center{% endblock %}
+{% block top_action %}<button class="admit-add" type="button" data-open-add>＋ Add university</button>{% endblock %}
 
-    {% macro ring(percent, readiness_class, size) %}
-    {% set ring_offset = (percent / 100 * 100.53) | round(2) %}
-    <span class="ring-wrap {{ readiness_class }}" title="Readiness score">
-        <svg viewBox="0 0 40 40" width="{{ size }}" height="{{ size }}" role="img" aria-label="{{ percent }}% ready">
-            <circle class="ring-track" cx="20" cy="20" r="16" fill="none" stroke-width="4"/>
-            <circle class="ring-fill" cx="20" cy="20" r="16" fill="none" stroke-width="4"
-                    stroke-dasharray="{{ ring_offset }} 100.53" transform="rotate(-90 20 20)"/>
-            <text x="20" y="23.5" class="ring-text">{{ percent }}%</text>
-        </svg>
-    </span>
-    {% endmacro %}
+{% macro school_logo(uni, brand) %}
+<span class="school-logo">
+    {% if brand.logo %}<img src="{{ url_for('static', filename=brand.logo) }}" alt="{{ uni.name }} seal">
+    {% else %}<span class="fallback-mark" aria-hidden="true">{{ brand.initials }}</span>{% endif %}
+    <span class="school-logo-label">{{ uni.name }}</span>
+</span>
+{% endmacro %}
 
-    <div class="page page-dashboard">
-        <header class="app-nav">
-            <a href="/dashboard" class="app-nav-brand">
-                <img src="{{ url_for('static', filename='logo.svg') }}" alt="" class="brand-logo">
-                My Applications
-            </a>
-            <nav class="app-nav-links" aria-label="Primary">
-                <a href="/dashboard" class="app-nav-link is-active">Dashboard</a>
-                <a href="/pipeline" class="app-nav-link">Applications</a>
-                <a href="/export/calendar" class="app-nav-link">Calendar</a>
-                <a href="/analytics" class="app-nav-link">Analytics</a>
-            </nav>
-            <div class="app-nav-utilities">
-                <button type="button" id="utilities-toggle" class="btn-secondary" aria-haspopup="true" aria-expanded="false" aria-controls="utilities-menu">
-                    Menu
-                </button>
-                <div class="utilities-menu" id="utilities-menu" hidden>
-                    <a href="/export/csv" class="utilities-menu-item">Export CSV</a>
-                    {% if email_configured %}
-                    <a href="/reminders/send" class="utilities-menu-item">Email reminders</a>
-                    {% endif %}
-                    <button id="theme-toggle" type="button" class="utilities-menu-item" aria-label="Toggle dark mode">Dark mode</button>
-                    <form action="/logout" method="POST" class="inline-form">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="utilities-menu-item logout-link link-button">Log out</button>
-                    </form>
-                </div>
-            </div>
-        </header>
-
-        {% if is_demo %}
-        <p class="banner banner-demo">This is your own private demo sandbox with sample data - feel free to explore and edit anything. It's temporary and gets cleaned up automatically, so nothing you do here affects anyone else.</p>
-        {% endif %}
-        {% if deleted_name %}
-        <div class="banner banner-success">
-            "{{ deleted_name }}" deleted.
-            <form action="/restore/{{ deleted_id }}" method="POST" class="inline-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="link-button banner-link">Undo</button>
-            </form>
-        </div>
-        {% endif %}
-        {% if reminder_sent %}
-        <p class="banner banner-success">Reminder email sent!</p>
-        {% endif %}
-        {% if reminder_error == "not_configured" %}
-        <p class="banner banner-error">Email isn't configured yet - add EMAIL_ADDRESS and EMAIL_APP_PASSWORD to your environment.</p>
-        {% endif %}
-        {% if reminder_error == "send_failed" %}
-        <p class="banner banner-error">Couldn't send the email - check your email credentials.</p>
-        {% endif %}
-        {% if reminder_error == "rate_limited" %}
-        <p class="banner banner-error">You've sent a few reminder emails already - try again in a bit.</p>
-        {% endif %}
-
-        {% if universities %}
-        <section class="hero-canvas" aria-label="Application journey overview">
-            <div class="hero-copy-col">
-                <span class="hero-date">{{ hero_date_label() }}</span>
-                <h2 class="hero-heading">
-                    <span class="hero-heading-navy">Your route to</span>
-                    <span class="hero-heading-accent">decision day.</span>
-                </h2>
-                <p class="hero-copy">This dashboard keeps every university, deadline, essay, and next step in one place - so you always know exactly where each application stands.</p>
-                <div class="hero-stats-row">
-                    {% for option in status_options %}
-                    <span class="stat"><strong>{{ status_counts[option] }}</strong> {{ option }}</span>
-                    {% endfor %}
-                </div>
-                {% if next_deadline %}
-                <div class="hero-deadline-chip">
-                    Next up: <strong>{{ next_deadline.name }}</strong> &middot; {{ next_deadline.days_text }}
-                </div>
-                {% endif %}
-            </div>
-            <div class="hero-journey" data-default-selected="{{ next_deadline.id if next_deadline else universities[0].id }}">
-                <svg viewBox="0 0 420 300" role="img" aria-label="An illustrated path from researching through applying, submitting, and deciding, between two campus buildings">
-                    <path class="journey-hill" d="M0 200 Q 105 170 210 190 T 420 180 V300 H0 Z"/>
-                    <g class="journey-building" transform="translate(58,150)">
-                        <rect x="0" y="20" width="70" height="66" rx="3"/>
-                        <path d="M-6 20 L35 -4 L76 20 Z"/>
-                        <line class="journey-building-line" x1="14" y1="40" x2="26" y2="40"/>
-                        <line class="journey-building-line" x1="14" y1="56" x2="26" y2="56"/>
-                        <line class="journey-building-line" x1="44" y1="40" x2="56" y2="40"/>
-                        <line class="journey-building-line" x1="44" y1="56" x2="56" y2="56"/>
-                    </g>
-                    <g class="journey-building" transform="translate(300,120)">
-                        <rect x="0" y="8" width="52" height="98" rx="3"/>
-                        <rect x="16" y="-16" width="20" height="24" rx="2"/>
-                        <line class="journey-building-line" x1="12" y1="30" x2="22" y2="30"/>
-                        <line class="journey-building-line" x1="30" y1="30" x2="40" y2="30"/>
-                        <line class="journey-building-line" x1="12" y1="50" x2="22" y2="50"/>
-                        <line class="journey-building-line" x1="30" y1="50" x2="40" y2="50"/>
-                    </g>
-                    <path class="journey-path" d="M95,236 C 150,170 175,175 200,165 C 225,155 250,125 272,110 C 300,125 335,155 347,196"/>
-                    <g>
-                        <circle class="journey-milestone-dot" cx="95" cy="236" r="5"/>
-                        <text class="journey-milestone-label" x="95" y="256" text-anchor="middle">Researching</text>
-                        <circle class="journey-milestone-dot" cx="200" cy="165" r="5"/>
-                        <text class="journey-milestone-label" x="200" y="151" text-anchor="middle">Applying</text>
-                        <circle class="journey-milestone-dot" cx="272" cy="110" r="5"/>
-                        <text class="journey-milestone-label" x="272" y="96" text-anchor="middle">Submitted</text>
-                        <circle class="journey-milestone-dot" cx="347" cy="196" r="5"/>
-                        <text class="journey-milestone-label" x="347" y="216" text-anchor="middle">Decision</text>
-                    </g>
-                    <path class="journey-plane" d="M0,-4 L8,0 L0,4 L1.5,0 Z"/>
-                </svg>
-                <div class="selected-app-label" id="selected-app-label">
-                    <span class="selected-app-eyebrow">Selected application</span>
-                    <span class="selected-app-name" id="selected-app-name">&nbsp;</span>
-                    <span class="selected-app-meta" id="selected-app-meta">&nbsp;</span>
-                </div>
-            </div>
-        </section>
-        {% endif %}
-
-        {% if suggestions %}
-        <div class="suggestions-panel">
-            <h2>What to work on next</h2>
-            <ul class="suggestions-list">
-                {% for suggestion in suggestions %}
-                <li>
-                    <a href="/university/{{ suggestion.university_id }}">{{ suggestion.text }}</a>
-                    <span class="suggestion-urgency {% if suggestion.days_left < 0 %}suggestion-overdue{% elif suggestion.days_left <= 7 %}suggestion-urgent{% endif %}">
-                        {% if suggestion.days_left < 0 %}{{ -suggestion.days_left }}d overdue
-                        {% elif suggestion.days_left == 0 %}due today
-                        {% else %}{{ suggestion.days_left }}d left{% endif %}
-                    </span>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-
-        <div class="controls-bar">
-            <input type="text" id="search-input" placeholder="Search universities...">
-            <select id="status-filter">
-                <option value="">All statuses</option>
-                {% for option in status_options %}
-                <option value="{{ option }}">{{ option }}</option>
-                {% endfor %}
-            </select>
-            <select id="sort-select">
-                <option value="deadline">Sort: Deadline</option>
-                <option value="name">Sort: Name</option>
-                <option value="status">Sort: Status</option>
-            </select>
-            <button id="compare-button" type="button" class="btn-secondary" disabled>Compare selected</button>
-        </div>
-
-        {% if not universities %}
-        <div class="onboarding-welcome">
-            <h2>Welcome! Let's set up your first application.</h2>
-            <ol>
-                <li>Add a university below with its name and application deadline</li>
-                <li>Select it here to open its workspace and add essays, recommendation letters, documents, and cost info</li>
-                <li>Come back here anytime to see your Readiness Score and what to work on next</li>
-            </ol>
-        </div>
-        {% endif %}
-
-        <h2 class="section-heading">Your universities</h2>
-        <ul class="uni-list">
-            {% for uni in universities %}
-            {% set brand = get_university_brand(uni.name) %}
-            {% set readiness_class = "readiness-high" if uni.readiness_score >= 80 else ("readiness-medium" if uni.readiness_score >= 50 else "readiness-low") %}
-            <li class="uni-card {% if loop.first %}is-selected{% endif %}" data-name="{{ uni.name }}" data-status="{{ uni.status }}" data-deadline="{{ uni.deadline }}"
-                data-uni-id="{{ uni.id }}" data-percent="{{ uni.readiness_score }}" data-next-action="{{ uni.next_action }}"
-                data-primary="{{ brand.primary }}" style="--select-color: {{ brand.primary }};">
-                <div class="app-card-header" style="background: color-mix(in srgb, {{ brand.primary }} 22%, var(--card-bg));">
-                    {{ campus_silhouette(brand.silhouette, brand.primary) }}
-                    <label class="compare-checkbox-label compact" title="Select for comparison">
-                        <input type="checkbox" class="compare-checkbox" value="{{ uni.id }}">
-                        <span class="visually-hidden">Compare {{ uni.name }}</span>
-                    </label>
-                </div>
-                <button type="button" class="app-card-body uni-select-trigger" aria-pressed="{{ 'true' if loop.first else 'false' }}" data-select-id="{{ uni.id }}">
-                    <div class="app-card-top">
-                        {{ crest(uni, brand, "crest-md") }}
-                        {{ ring(uni.readiness_score, readiness_class, 40) }}
-                    </div>
-                    <h2 class="uni-name">{{ uni.name }}</h2>
-                    {% if brand.known %}
-                    <p class="app-card-location">{{ brand.location }}</p>
-                    {% endif %}
-                    <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
-                    <span class="status-badge status-{{ uni.status | replace(' ', '-') | lower }}">{{ uni.status }}</span>
-                    <p class="app-card-next">{{ uni.next_action }}</p>
-                    {% if brand.known %}
-                    <p class="app-card-identity">{{ brand.identity }}</p>
-                    {% endif %}
-                </button>
-            </li>
-            {% endfor %}
-        </ul>
-
-        {% if universities %}
-        <section class="workspace" aria-label="Selected application's workspace" aria-live="polite">
-            {% for uni in universities %}
-            {% set brand = get_university_brand(uni.name) %}
-            <div class="workspace-panel" data-workspace-panel="{{ uni.id }}" {% if not loop.first %}hidden{% endif %}>
-                <div class="workspace-header">
-                    <div class="workspace-header-id">
-                        {{ crest(uni, brand, "crest-sm") }}
-                        <div>
-                            <h2 class="workspace-title">{{ uni.name }}</h2>
-                            <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
-                        </div>
-                    </div>
-                    <div class="workspace-header-actions">
-                        <form action="/status/{{ uni.id }}" method="POST" class="status-form">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <select name="status">
-                                {% for option in status_options %}
-                                <option value="{{ option }}" {% if option == uni.status %}selected{% endif %}>{{ option }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn-secondary">Update</button>
-                        </form>
-                        <div class="card-actions">
-                            <a href="/university/{{ uni.id }}" class="edit-link">Full profile</a>
-                            <a href="/edit/{{ uni.id }}" class="edit-link">Edit</a>
-                            <form action="/duplicate/{{ uni.id }}" method="POST" class="inline-form">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="edit-link link-button">Duplicate</button>
-                            </form>
-                            <form action="/delete/{{ uni.id }}" method="POST" class="inline-form"
-                                  onsubmit="return confirm('Delete {{ uni.name }}? You can undo this from the dashboard afterward.');">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="delete-link link-button">Delete</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                {% if uni.notes %}
-                <p class="uni-notes">{{ uni.notes }}</p>
-                {% endif %}
-
-                <div class="workspace-columns">
-                    <div class="workspace-col">
-                        <h3 class="workspace-col-title">Checklist</h3>
-                        <div class="progress-track">
-                            <div class="progress-fill" style="width: {{ uni.progress_percent }}%"></div>
-                        </div>
-                        <p class="progress-label">{{ uni.progress_percent }}% of checklist complete</p>
-                        <ul class="checklist">
-                            {% for item in uni.checklist %}
-                            <li class="checklist-row">
-                                <form action="/checklist/toggle/{{ item.id }}" method="POST" class="inline-form checklist-item-form">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="checklist-item link-button {% if item.done %}checked{% endif %}">
-                                        <span class="checkbox">{% if item.done %}&#10003;{% endif %}</span>
-                                        {{ item.title }}
-                                    </button>
-                                </form>
-                                <form action="/checklist/delete/{{ item.id }}" method="POST" class="inline-form">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="checklist-delete link-button" title="Remove task" aria-label="Remove task">&times;</button>
-                                </form>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        <form action="/checklist/add/{{ uni.id }}" method="POST" class="add-task-form">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="text" name="task" placeholder="Add a task">
-                            <button type="submit" class="btn-icon" aria-label="Add task">+</button>
-                        </form>
-                    </div>
-
-                    <div class="workspace-col">
-                        <h3 class="workspace-col-title">Application packet</h3>
-                        {% if uni.tuition_cost is not none or uni.financial_aid_estimate is not none %}
-                        <div class="packet-cost-row">
-                            {% if uni.tuition_cost is not none %}<span class="stat">Tuition: <strong>${{ "%.0f"|format(uni.tuition_cost) }}</strong></span>{% endif %}
-                            {% if uni.financial_aid_estimate is not none %}<span class="stat">Aid: <strong>${{ "%.0f"|format(uni.financial_aid_estimate) }}</strong></span>{% endif %}
-                            {% if uni.net_cost is not none %}<span class="stat stat-highlight">Net: <strong>${{ "%.0f"|format(uni.net_cost) }}</strong></span>{% endif %}
-                        </div>
-                        {% endif %}
-                        {% if uni.packet %}
-                        {% for section in uni.packet %}
-                        <div class="packet-section">
-                            <h4 class="packet-section-title">{{ section.label }}</h4>
-                            <ul class="doc-stack">
-                                {% for item in section.entries %}
-                                <li class="doc-sheet {% if item.done %}is-done{% endif %}">
-                                    <span class="doc-sheet-label">
-                                        <span class="doc-sheet-check" aria-hidden="true">{% if item.done %}&#10003;{% endif %}</span>
-                                        <span>
-                                            {{ item.label }}
-                                            {% if item.detail %}<span class="doc-sheet-detail">{{ item.detail }}</span>{% endif %}
-                                        </span>
-                                    </span>
-                                    <span class="doc-sheet-status">{{ item.status }}</span>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                        {% endfor %}
-                        {% else %}
-                        <p class="doc-stack-empty">No essays, recommendations, documents, or interviews added yet.</p>
-                        {% endif %}
-                        <p class="doc-stack-next"><strong>Next action</strong>{{ uni.next_action }}</p>
-                        <a href="/university/{{ uni.id }}" class="btn-secondary workspace-profile-link">Open full profile &rarr;</a>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </section>
-        {% endif %}
-
-        <form action="/add" method="POST" class="add-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <h2>Add a University</h2>
-            <div class="add-form-row">
-                <input type="text" name="name" placeholder="University name" required>
-                <input type="date" name="deadline" required>
-                <button type="submit" class="btn-primary">Add</button>
-            </div>
+{% block content %}
+<div class="admit-content">
+    {% if is_demo %}<p class="admit-banner demo">This is your private demo sandbox. Explore freely—nothing here affects another account.</p>{% endif %}
+    {% if deleted_name %}
+    <div class="admit-banner">“{{ deleted_name }}” deleted.
+        <form action="/restore/{{ deleted_id }}" method="POST" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="link-button">Undo</button>
         </form>
     </div>
+    {% endif %}
+    {% if reminder_sent %}<p class="admit-banner">Reminder email sent.</p>{% endif %}
+    {% if reminder_error %}<p class="admit-banner">The reminder could not be sent. Please check the email configuration and try again.</p>{% endif %}
 
-    <script>
-        const searchInput = document.getElementById("search-input");
-        const statusFilter = document.getElementById("status-filter");
-        const sortSelect = document.getElementById("sort-select");
-        const list = document.querySelector(".uni-list");
+    {% if universities %}
+    {% set selected = next_deadline or universities[0] %}
+    {% set selected_brand = get_university_brand(selected.name) %}
+    <section class="journey-hero">
+        <div class="journey-copy">
+            <span class="admit-eyebrow">{{ hero_date_label() }}</span>
+            <h1 class="admit-display">Your route to<br><em>decision day.</em></h1>
+            <p class="admit-lead">{{ universities|length }} universit{{ 'y' if universities|length == 1 else 'ies' }}, one organized journey. See where you are, what is finished, and what moves you forward next.</p>
+            <div class="next-deadline"><b>{{ selected.days_text }}</b><span>until {{ selected.name }}’s deadline</span></div>
+        </div>
+        <div class="journey-scene" id="journey-scene" style="--scene-accent: {{ selected_brand.primary }}" role="img" aria-label="Illustrated journey from preparing documents to receiving a university decision">
+            <div class="scene-caption" aria-live="polite"><span class="scene-kicker">Selected application</span><strong id="scene-school">{{ selected.name }}</strong><small id="scene-detail">{{ selected.readiness_score }}% complete · {{ selected.next_action }}</small></div>
+            <div class="journey-sun"></div><div class="journey-hills"></div>
+            <div class="journey-campus one"><div class="campus-roof"></div><div class="campus-body"><i></i><i></i><i></i><i></i></div></div>
+            <div class="journey-campus two"><div class="campus-roof"></div><div class="campus-body"><i></i><i></i><i></i><i></i></div></div>
+            <div class="journey-arc"></div><span class="paper-plane" aria-hidden="true">➤</span>
+            <span class="journey-milestone done m1"><i>✓</i><span>Profile ready</span></span>
+            <span class="journey-milestone done m2"><i>✓</i><span>Documents</span></span>
+            <span class="journey-milestone active m3"><i>3</i><span>Applications</span></span>
+            <span class="journey-milestone m4"><i>4</i><span>Decision day</span></span>
+        </div>
+    </section>
 
-        function applyFilters() {
-            const query = searchInput.value.toLowerCase();
-            const status = statusFilter.value;
-            const cards = list.querySelectorAll(".uni-card");
+    <section class="journey-layout">
+        <div>
+            <div class="admit-section-head"><h2>Your university route</h2><small>Completion at a glance</small></div>
+            <div class="campus-grid">
+                {% for uni in universities %}
+                {% set brand = get_university_brand(uni.name) %}
+                <article class="university-card {% if uni.id == selected.id %}selected{% endif %}" style="--school: {{ brand.primary }}" data-university-card data-id="{{ uni.id }}" data-school="{{ uni.name }}" data-detail="{{ uni.readiness_score }}% complete · {{ uni.next_action }}" data-accent="{{ brand.primary }}">
+                    <button type="button" class="university-card-select" aria-pressed="{{ 'true' if uni.id == selected.id else 'false' }}">
+                        <span class="campus-illustration"><span class="identity-chip">{{ brand.identity or 'Application journey' }}</span></span>
+                        <span class="school-card-body">
+                            {{ school_logo(uni, brand) }}
+                            <strong class="school-card-title">{{ uni.name }}</strong>
+                            <span class="school-card-meta">{{ brand.location or 'University application' }} · {{ uni.deadline }}</span>
+                            <span class="school-detail"><span>{{ uni.status }}</span><span>{{ uni.next_action }}</span></span>
+                            <span class="school-card-foot"><span class="school-ticket">{{ uni.days_text }}</span><span class="progress-ring" style="--value: {{ uni.readiness_score }}%" data-value="{{ uni.readiness_score }}%"></span></span>
+                        </span>
+                    </button>
+                    <details class="card-quick-actions">
+                        <summary aria-label="Actions for {{ uni.name }}">•••</summary>
+                        <div class="card-action-menu">
+                            <a href="/university/{{ uni.id }}">Open application</a><a href="/edit/{{ uni.id }}">Edit details</a>
+                            <form action="/duplicate/{{ uni.id }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Duplicate</button></form>
+                            <form action="/delete/{{ uni.id }}" method="POST" onsubmit="return confirm('Delete {{ uni.name }}?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger" type="submit">Delete</button></form>
+                        </div>
+                    </details>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+        <aside class="admit-side-paper">
+            <h2>Application packet</h2>
+            {% for uni in universities %}
+            <div class="packet-panel" data-packet="{{ uni.id }}" {% if uni.id != selected.id %}hidden{% endif %}>
+                <div class="document-stack"><div class="document-sheet"></div><div class="document-sheet"></div><div class="document-sheet">
+                    <span class="admit-eyebrow">{{ uni.name }} packet</span>
+                    {% set shown = namespace(count=0) %}
+                    {% for item in uni.checklist if shown.count < 4 %}<div class="sheet-line {% if not item.done %}pending{% endif %}"><i>{{ '✓' if item.done else '!' }}</i>{{ item.title }}</div>{% set shown.count = shown.count + 1 %}{% endfor %}
+                    {% if shown.count == 0 %}<div class="sheet-line pending"><i>!</i>Build your checklist</div>{% endif %}
+                </div></div>
+                <div class="admit-note">Best next move: {{ uni.next_action }}.</div>
+                <a class="packet-link" href="/university/{{ uni.id }}">Open the full application →</a>
+            </div>
+            {% endfor %}
+        </aside>
+    </section>
+    <div class="visually-hidden" aria-hidden="true">{% for suggestion in suggestions %}<span>{{ suggestion.text }}</span>{% endfor %}</div>
+    {% else %}
+    <section class="admit-empty"><span class="admit-eyebrow">A clear beginning</span><h1 class="admit-display">Let's set up your first application.</h1><p class="admit-lead">Add a university and admit. will turn its deadlines, documents, essays, and next steps into one organized journey.</p><button class="admit-add" type="button" data-open-add>＋ Add your first university</button></section>
+    {% endif %}
+</div>
 
-            cards.forEach(function (card) {
-                const matchesSearch = card.dataset.name.toLowerCase().includes(query);
-                const matchesStatus = !status || card.dataset.status === status;
-                card.style.display = (matchesSearch && matchesStatus) ? "" : "none";
-            });
-        }
+<dialog class="admit-dialog" id="add-university"><div class="dialog-inner">
+    <div class="dialog-head"><h2>Add a university</h2><button class="dialog-close" type="button" data-close-add aria-label="Close">×</button></div>
+    <form action="/add" method="POST" class="dialog-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>University name<input type="text" name="name" placeholder="e.g. Northeastern University" required></label><label>Application deadline<input type="date" name="deadline" required></label><button type="submit">Add to my route</button></form>
+</div></dialog>
+{% endblock %}
 
-        function applySort() {
-            const sortBy = sortSelect.value;
-            const cards = Array.from(list.querySelectorAll(".uni-card"));
-
-            cards.sort(function (a, b) {
-                if (sortBy === "name") return a.dataset.name.localeCompare(b.dataset.name);
-                if (sortBy === "status") return a.dataset.status.localeCompare(b.dataset.status);
-                return a.dataset.deadline.localeCompare(b.dataset.deadline);
-            });
-
-            cards.forEach(function (card) {
-                list.appendChild(card);
-            });
-        }
-
-        searchInput.addEventListener("input", applyFilters);
-        statusFilter.addEventListener("change", applyFilters);
-        sortSelect.addEventListener("change", applySort);
-
-        const compareButton = document.getElementById("compare-button");
-        const compareCheckboxes = document.querySelectorAll(".compare-checkbox");
-
-        function updateCompareButton() {
-            const checkedCount = document.querySelectorAll(".compare-checkbox:checked").length;
-            compareButton.disabled = checkedCount < 2 || checkedCount > 4;
-            compareButton.textContent = checkedCount > 4
-                ? "Compare (max 4)"
-                : `Compare selected${checkedCount ? " (" + checkedCount + ")" : ""}`;
-        }
-
-        compareCheckboxes.forEach(function (checkbox) {
-            checkbox.addEventListener("change", updateCompareButton);
-            // Selecting a card for comparison shouldn't also open its workspace.
-            checkbox.addEventListener("click", function (e) { e.stopPropagation(); });
-        });
-
-        compareButton.addEventListener("click", function () {
-            const ids = Array.from(document.querySelectorAll(".compare-checkbox:checked"))
-                .map(function (checkbox) { return checkbox.value; });
-            window.location.href = "/compare?ids=" + ids.join(",");
-        });
-
-        const themeToggle = document.getElementById("theme-toggle");
-
-        function isDarkActive() {
-            const explicit = document.documentElement.getAttribute("data-theme");
-            if (explicit) return explicit === "dark";
-            return window.matchMedia("(prefers-color-scheme: dark)").matches;
-        }
-
-        function updateToggleLabel() {
-            themeToggle.textContent = isDarkActive() ? "Light mode" : "Dark mode";
-        }
-
-        themeToggle.addEventListener("click", function () {
-            const next = isDarkActive() ? "light" : "dark";
-            document.documentElement.setAttribute("data-theme", next);
-            localStorage.setItem("theme", next);
-            updateToggleLabel();
-        });
-
-        updateToggleLabel();
-
-        // --- Utilities menu (Export CSV / reminders / dark mode / log out) ---
-        const utilitiesToggle = document.getElementById("utilities-toggle");
-        const utilitiesMenu = document.getElementById("utilities-menu");
-
-        function closeUtilitiesMenu() {
-            utilitiesMenu.hidden = true;
-            utilitiesToggle.setAttribute("aria-expanded", "false");
-        }
-
-        utilitiesToggle.addEventListener("click", function (e) {
-            e.stopPropagation();
-            const willOpen = utilitiesMenu.hidden;
-            utilitiesMenu.hidden = !willOpen;
-            utilitiesToggle.setAttribute("aria-expanded", String(willOpen));
-        });
-
-        document.addEventListener("click", function (e) {
-            if (!utilitiesMenu.hidden && !utilitiesMenu.contains(e.target) && e.target !== utilitiesToggle) {
-                closeUtilitiesMenu();
-            }
-        });
-
-        document.addEventListener("keydown", function (e) {
-            if (e.key === "Escape") closeUtilitiesMenu();
-        });
-
-        // --- Selected-application workspace + journey panel ---
-        const uniCards = document.querySelectorAll(".uni-card");
-        const journey = document.querySelector(".hero-journey");
-        const selectedName = document.getElementById("selected-app-name");
-        const selectedMeta = document.getElementById("selected-app-meta");
-
-        function selectUniversity(id) {
-            let matchedCard = null;
-            uniCards.forEach(function (card) {
-                const isMatch = card.dataset.uniId === String(id);
-                if (isMatch) matchedCard = card;
-                card.classList.toggle("is-selected", isMatch);
-                const trigger = card.querySelector(".uni-select-trigger");
-                if (trigger) trigger.setAttribute("aria-pressed", String(isMatch));
-            });
-            document.querySelectorAll(".workspace-panel").forEach(function (panel) {
-                panel.hidden = panel.dataset.workspacePanel !== String(id);
-            });
-            if (matchedCard && selectedName && selectedMeta) {
-                selectedName.textContent = matchedCard.dataset.name;
-                selectedMeta.textContent = matchedCard.dataset.percent + "% complete · " + matchedCard.dataset.nextAction;
-                if (journey) journey.style.setProperty("--journey-accent", matchedCard.dataset.primary);
-            }
-        }
-
-        uniCards.forEach(function (card) {
-            const trigger = card.querySelector(".uni-select-trigger");
-            if (trigger) {
-                trigger.addEventListener("click", function () {
-                    selectUniversity(card.dataset.uniId);
-                    document.querySelector(".workspace")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                });
-            }
-        });
-
-        if (journey) {
-            const defaultId = journey.dataset.defaultSelected;
-            if (defaultId) selectUniversity(defaultId);
-        }
-    </script>
-</body>
-</html>
+{% block scripts %}
+<script>
+(() => {
+    const dialog = document.getElementById('add-university');
+    document.querySelectorAll('[data-open-add]').forEach(button => button.addEventListener('click', () => dialog.showModal()));
+    document.querySelector('[data-close-add]')?.addEventListener('click', () => dialog.close());
+    if (location.hash === '#add-university') dialog.showModal();
+    const scene = document.getElementById('journey-scene');
+    document.querySelectorAll('[data-university-card]').forEach(card => card.querySelector('.university-card-select').addEventListener('click', () => {
+        document.querySelectorAll('[data-university-card]').forEach(other => { const selected = other === card; other.classList.toggle('selected', selected); other.querySelector('.university-card-select').setAttribute('aria-pressed', String(selected)); });
+        document.querySelectorAll('[data-packet]').forEach(packet => packet.hidden = packet.dataset.packet !== card.dataset.id);
+        document.getElementById('scene-school').textContent = card.dataset.school;
+        document.getElementById('scene-detail').textContent = card.dataset.detail;
+        scene.style.setProperty('--scene-accent', card.dataset.accent);
+    }));
+})();
+</script>
+{% endblock %}

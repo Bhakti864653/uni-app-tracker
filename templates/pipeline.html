@@ -1,56 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Pipeline - University Application Tracker</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-        (function () {
-            const saved = localStorage.getItem("theme");
-            if (saved) document.documentElement.setAttribute("data-theme", saved);
-        })();
-    </script>
-</head>
-<body>
-    <div class="page">
-        <header class="top-bar">
-            <h1>Application Pipeline</h1>
-            <div class="top-bar-actions">
-                <a href="/dashboard" class="btn-secondary">Dashboard</a>
-                <a href="/pipeline" class="btn-secondary">Applications</a>
-                <a href="/export/calendar" class="btn-secondary">Calendar</a>
-                <a href="/analytics" class="btn-secondary">Analytics</a>
-            </div>
-        </header>
+{% extends "base_app.html" %}
+{% set active_page = "applications" %}
+{% block title %}Applications · admit.{% endblock %}
+{% block crumb %}Move every application forward{% endblock %}
 
-        <div class="pipeline-board">
-            {% for status in status_options %}
-            <div class="pipeline-column pipeline-column-{{ status | replace(' ', '-') | lower }}">
-                <h2>{{ status }} <span class="pipeline-count">{{ columns[status] | length }}</span></h2>
-
-                {% if not columns[status] %}
-                <p class="empty-state">Nothing here.</p>
-                {% endif %}
-
-                {% for uni in columns[status] %}
-                <div class="pipeline-card">
-                    <a href="/university/{{ uni.id }}" class="pipeline-card-name">{{ uni.name }}</a>
-                    <p class="task-detail">Due {{ uni.deadline }} &middot; {{ uni.days_text }}</p>
-                    {% if status in next_status %}
-                    <form action="/status/{{ uni.id }}" method="POST" class="inline-form">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="status" value="{{ next_status[status] }}">
-                        <button type="submit" class="btn-secondary pipeline-move-btn">Move to {{ next_status[status] }} &rarr;</button>
-                    </form>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            {% endfor %}
-        </div>
+{% block content %}
+<div class="admit-content">
+    <div class="admit-page-title">
+        <div><span class="admit-eyebrow">The whole cycle</span><h1>Applications</h1></div>
+        <div class="admit-filter" aria-label="Application filters"><button class="active" type="button" data-filter="all">All</button><button type="button" data-filter="active">In progress</button><button type="button" data-filter="submitted">Submitted</button></div>
     </div>
-</body>
-</html>
+    <div class="admit-pipeline">
+        {% for lane_name in ["Researching", "Building", "Ready", "Submitted"] %}
+        <section class="admit-lane" data-lane="{{ lane_name|lower }}">
+            <div class="admit-lane-head"><span>{{ lane_name }}</span><b>{{ columns[lane_name]|length }}</b></div>
+            {% if not columns[lane_name] %}<p class="empty-state">Your applications will land here.</p>{% endif %}
+            {% for uni in columns[lane_name] %}
+            {% set brand = get_university_brand(uni.name) %}
+            <article class="admit-file" style="--filetone: {{ brand.primary }}">
+                <a href="/university/{{ uni.id }}">{{ uni.name }}</a>
+                <small>{{ uni.program or lane_name }} · {{ uni.days_text }}</small>
+                <div class="percent">{{ uni.readiness_score }}%</div>
+                {% if lane_name == "Researching" %}
+                <form action="/status/{{ uni.id }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="In Progress"><button type="submit">Move to Building →</button></form>
+                {% elif lane_name in ["Building", "Ready"] %}
+                <form action="/status/{{ uni.id }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="Submitted"><button type="submit">Mark submitted →</button></form>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </section>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('[data-filter]').forEach(item => item.classList.toggle('active', item === button));
+    document.querySelectorAll('[data-lane]').forEach(lane => {
+        lane.hidden = button.dataset.filter === 'submitted' ? lane.dataset.lane !== 'submitted' : button.dataset.filter === 'active' ? lane.dataset.lane === 'submitted' : false;
+    });
+}));
+</script>
+{% endblock %}

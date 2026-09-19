@@ -13,6 +13,7 @@ import csv
 import io
 import mimetypes
 import urllib.request
+import calendar as calendar_module
 from urllib.parse import quote
 from collections import defaultdict
 from datetime import date, timedelta, datetime, timezone
@@ -674,7 +675,10 @@ def home():
     status_counts = {option: 0 for option in STATUS_OPTIONS}
     for uni in universities:
         status_counts[uni["status"]] += 1
-    next_deadline = universities[0] if universities else None
+    next_deadline = next(
+        (uni for uni in universities if uni["status"] != "Submitted" and days_left_int(uni["deadline"]) >= 0),
+        universities[0] if universities else None,
+    )
     suggestions = build_suggestions(universities)
 
     return render_template(
@@ -1310,22 +1314,110 @@ def compare():
 def pipeline():
     conn = get_db()
     rows = get_user_universities(conn, session["user_id"])
-    conn.close()
-
-    next_status = {
-        STATUS_OPTIONS[i]: STATUS_OPTIONS[i + 1]
-        for i in range(len(STATUS_OPTIONS) - 1)
-    }
-    columns = {option: [] for option in STATUS_OPTIONS}
+    columns = {"Researching": [], "Building": [], "Ready": [], "Submitted": []}
     for row in rows:
         row["days_text"] = days_remaining_text(row["deadline"])
-        columns[row["status"]].append(row)
+        checklist = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'checklist'", (row["id"],)
+        ))
+        essays = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'essay'", (row["id"],)
+        ))
+        recommendations = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'recommendation'", (row["id"],)
+        ))
+        documents = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'document'", (row["id"],)
+        ))
+        interviews = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'interview'", (row["id"],)
+        ))
+        row["readiness_score"] = compute_readiness_score(
+            checklist, essays, recommendations, documents, interviews
+        )
+        if row["status"] == "Submitted":
+            lane = "Submitted"
+        elif row["status"] == "Not Started":
+            lane = "Researching"
+        elif row["readiness_score"] >= 80:
+            lane = "Ready"
+        else:
+            lane = "Building"
+        columns[lane].append(row)
+    conn.close()
 
     return render_template(
         "pipeline.html",
         columns=columns,
-        status_options=STATUS_OPTIONS,
-        next_status=next_status,
+        email_configured=bool(EMAIL_ADDRESS and RESEND_API_KEY),
+    )
+
+@app.route("/calendar")
+@login_required
+def calendar_view():
+    conn = get_db()
+    rows = get_user_universities(conn, session["user_id"])
+    events = []
+    for row in rows:
+        try:
+            deadline = date.fromisoformat(row["deadline"])
+        except (TypeError, ValueError):
+            continue
+        events.append({
+            "date": deadline,
+            "label": f"{row['name']} deadline",
+            "university": row["name"],
+            "kind": "Application",
+        })
+        tasks = dictrows(conn.execute(
+            "SELECT title, task_type, due_date FROM tasks WHERE university_id = ? AND due_date IS NOT NULL",
+            (row["id"],)
+        ))
+        for task in tasks:
+            try:
+                due_date = date.fromisoformat(task["due_date"])
+            except (TypeError, ValueError):
+                continue
+            events.append({
+                "date": due_date,
+                "label": task["title"],
+                "university": row["name"],
+                "kind": task["task_type"].title(),
+            })
+    conn.close()
+
+    today = date.today()
+    default_event = next((event for event in sorted(events, key=lambda e: e["date"]) if event["date"] >= today), None)
+    try:
+        year = int(request.args.get("year", default_event["date"].year if default_event else today.year))
+        month = int(request.args.get("month", default_event["date"].month if default_event else today.month))
+        if not 1 <= month <= 12:
+            raise ValueError
+    except (TypeError, ValueError):
+        year, month = today.year, today.month
+
+    weeks = calendar_module.Calendar(firstweekday=6).monthdayscalendar(year, month)
+    month_events = defaultdict(list)
+    for event in events:
+        if event["date"].year == year and event["date"].month == month:
+            month_events[event["date"].day].append(event)
+
+    first_of_month = date(year, month, 1)
+    previous_month = first_of_month - timedelta(days=1)
+    next_month = (first_of_month.replace(day=28) + timedelta(days=4)).replace(day=1)
+    upcoming = [event for event in sorted(events, key=lambda e: e["date"]) if event["date"] >= today][:6]
+
+    return render_template(
+        "calendar.html",
+        year=year,
+        month=month,
+        month_name=calendar_module.month_name[month],
+        weeks=weeks,
+        month_events=month_events,
+        previous_month=previous_month,
+        next_month=next_month,
+        upcoming=upcoming,
+        email_configured=bool(EMAIL_ADDRESS and RESEND_API_KEY),
     )
 
 @app.route("/analytics")
@@ -1342,7 +1434,7 @@ def analytics():
         status_counts[row["status"]] += 1
 
         checklist = dictrows(conn.execute(
-            "SELECT done FROM tasks WHERE university_id = ? AND task_type = 'checklist'", (row["id"],)
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'checklist'", (row["id"],)
         ))
         done_count = sum(1 for item in checklist if item["done"])
         progress_percent = round(100 * done_count / len(checklist)) if checklist else 0
@@ -1350,6 +1442,20 @@ def analytics():
         net_cost = None
         if row["tuition_cost"] is not None and row["financial_aid_estimate"] is not None:
             net_cost = row["tuition_cost"] - row["financial_aid_estimate"]
+
+        essays = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'essay'", (row["id"],)
+        ))
+        recommendations = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'recommendation'", (row["id"],)
+        ))
+        documents = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'document'", (row["id"],)
+        ))
+        interviews = dictrows(conn.execute(
+            "SELECT * FROM tasks WHERE university_id = ? AND task_type = 'interview'", (row["id"],)
+        ))
+        readiness_score = compute_readiness_score(checklist, essays, recommendations, documents, interviews)
 
         university_data.append({
             "name": row["name"],
@@ -1359,6 +1465,7 @@ def analytics():
             "tuition_cost": row["tuition_cost"],
             "financial_aid_estimate": row["financial_aid_estimate"],
             "net_cost": net_cost,
+            "readiness_score": readiness_score,
         })
 
         timeline_events.append({"date": row["deadline"], "label": f"{row['name']} - application deadline"})
@@ -1378,6 +1485,7 @@ def analytics():
     cost_ranked_universities = sorted(
         university_data, key=lambda u: u["net_cost"] if u["net_cost"] is not None else float("inf")
     )
+    overall_readiness = round(sum(u["readiness_score"] for u in university_data) / len(university_data)) if university_data else 0
 
     return render_template(
         "analytics.html",
@@ -1387,6 +1495,8 @@ def analytics():
         status_options=STATUS_OPTIONS,
         timeline_events=timeline_events,
         has_cost_data=has_cost_data,
+        overall_readiness=overall_readiness,
+        email_configured=bool(EMAIL_ADDRESS and RESEND_API_KEY),
     )
 
 _db_initialized = False

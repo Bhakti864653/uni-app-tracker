@@ -1,0 +1,35 @@
+{% extends "base_app.html" %}
+{% set active_page = "calendar" %}
+{% block title %}Calendar · admit.{% endblock %}
+{% block crumb %}See every deadline before it arrives{% endblock %}
+
+{% block content %}
+<div class="admit-content">
+    <div class="admit-page-title"><div><span class="admit-eyebrow">Deadlines in context</span><h1>Calendar</h1></div></div>
+    <div class="calendar-layout">
+        <section class="calendar-month">
+            <div class="calendar-month-head">
+                <h2>{{ month_name }} {{ year }}</h2>
+                <div class="admit-filter"><a href="/calendar?year={{ previous_month.year }}&month={{ previous_month.month }}" aria-label="Previous month">‹</a><a href="/calendar?year={{ next_month.year }}&month={{ next_month.month }}" aria-label="Next month">›</a></div>
+            </div>
+            <div class="calendar-week">
+                {% for day_name in ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] %}<div class="calendar-dow">{{ day_name }}</div>{% endfor %}
+                {% for week in weeks %}{% for day in week %}
+                <div class="calendar-day {% if day == 0 %}blank{% endif %}">
+                    {% if day %}{{ day }}{% for event in month_events[day] %}<span class="calendar-event" title="{{ event.label }} · {{ event.university }}">{{ event.label }}</span>{% endfor %}{% endif %}
+                </div>
+                {% endfor %}{% endfor %}
+            </div>
+        </section>
+        <aside>
+            <span class="admit-eyebrow">Coming up</span>
+            <div class="admit-section-head" style="margin-top:8px"><h2>Deadline queue</h2></div>
+            {% if upcoming %}
+            {% for event in upcoming %}
+            <div class="deadline-item"><div class="datebox"><small>{{ event.date.strftime('%b') }}</small><b>{{ event.date.strftime('%d') }}</b></div><div><strong>{{ event.label }}</strong><span>{{ event.university }} · {{ event.kind }}</span></div></div>
+            {% endfor %}
+            {% else %}<p class="empty-state">No upcoming deadlines yet.</p>{% endif %}
+        </aside>
+    </div>
+</div>
+{% endblock %}

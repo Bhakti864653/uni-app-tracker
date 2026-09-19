@@ -219,6 +219,16 @@ def test_export_calendar_contains_deadline_event(logged_in_client, csrf_token):
     assert b"DTSTART;VALUE=DATE:20270101" in response.data
 
 
+def test_calendar_page_renders_application_deadline(logged_in_client, csrf_token):
+    logged_in_client.post("/add", data={
+        "name": "MIT", "deadline": "2027-01-01", "csrf_token": csrf_token,
+    })
+    response = logged_in_client.get("/calendar?year=2027&month=1")
+    assert response.status_code == 200
+    assert b"January 2027" in response.data
+    assert b"MIT deadline" in response.data
+
+
 def test_export_csv_neutralizes_formula_injection(logged_in_client, csrf_token):
     logged_in_client.post("/add", data={
         "name": "=cmd|'/c calc'!A1", "deadline": "2027-01-01", "csrf_token": csrf_token,

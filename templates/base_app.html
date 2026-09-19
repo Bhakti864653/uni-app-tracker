@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}admit.{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Caslon+Display&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='admit.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="admit-body">
+    <div class="admit-shell">
+        <aside class="admit-rail">
+            <a class="admit-brand" href="/dashboard" aria-label="admit. dashboard">
+                <span class="admit-brandmark" aria-hidden="true"></span>
+                <span>admit.</span>
+            </a>
+            <p class="admit-cycle">Application cycle</p>
+            <nav class="admit-nav" aria-label="Primary navigation">
+                <a href="/dashboard" class="{% if active_page == 'overview' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">⌂</span><span>Overview</span>
+                </a>
+                <a href="/pipeline" class="{% if active_page == 'applications' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">☷</span><span>Applications</span>
+                </a>
+                <a href="/calendar" class="{% if active_page == 'calendar' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">□</span><span>Calendar</span>
+                </a>
+                <a href="/analytics" class="{% if active_page == 'readiness' %}active{% endif %}">
+                    <span class="nav-icon" aria-hidden="true">↗</span><span>Readiness</span>
+                </a>
+            </nav>
+            <div class="admit-rail-foot">
+                <span class="admit-avatar">A</span>
+                <div><strong>My workspace</strong><small>University applications</small></div>
+            </div>
+        </aside>
+
+        <main class="admit-main">
+            <header class="admit-topbar">
+                <span class="admit-crumb">{% block crumb %}Your application command center{% endblock %}</span>
+                <div class="admit-top-actions">
+                    <details class="admit-utility">
+                        <summary class="admit-icon-button" aria-label="Open utilities">•••</summary>
+                        <div class="admit-utility-menu">
+                            <a href="/export/csv">Export CSV</a>
+                            <a href="/export/calendar">Export calendar</a>
+                            {% if email_configured %}<a href="/reminders/send">Email reminders</a>{% endif %}
+                            <form action="/logout" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit">Log out</button>
+                            </form>
+                        </div>
+                    </details>
+                    {% block top_action %}<a class="admit-add" href="/dashboard#add-university">＋ Add university</a>{% endblock %}
+                </div>
+            </header>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

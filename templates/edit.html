@@ -1,39 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Edit University</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-        (function () {
-            const saved = localStorage.getItem("theme");
-            if (saved) document.documentElement.setAttribute("data-theme", saved);
-        })();
-    </script>
-</head>
-<body>
-    <div class="page" style="max-width: 420px;">
-        <h1 style="margin-bottom: 20px;">Edit University</h1>
-
-        <form action="/edit/{{ uni.id }}" method="POST" class="add-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="text" name="name" value="{{ uni.name }}" required style="width: 100%; margin-bottom: 10px;">
-            <input type="date" name="deadline" value="{{ uni.deadline }}" required style="width: 100%; margin-bottom: 10px;">
-            <input type="text" name="program" value="{{ uni.program }}" placeholder="Program / major (optional)" style="width: 100%; margin-bottom: 10px;">
-            <input type="url" name="portal_url" value="{{ uni.portal_url }}" placeholder="Application portal link (optional)" style="width: 100%; margin-bottom: 10px;">
-            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                <input type="number" step="0.01" min="0" name="tuition_cost" value="{{ uni.tuition_cost if uni.tuition_cost is not none else '' }}" placeholder="Tuition cost ($)" style="width: 100%;">
-                <input type="number" step="0.01" min="0" name="financial_aid_estimate" value="{{ uni.financial_aid_estimate if uni.financial_aid_estimate is not none else '' }}" placeholder="Aid estimate ($)" style="width: 100%;">
-            </div>
-            <textarea name="notes" placeholder="Notes (optional)" rows="4">{{ uni.notes }}</textarea>
-            <div style="display: flex; align-items: center; gap: 14px; margin-top: 14px;">
-                <button type="submit" class="btn-primary">Save</button>
-                <a href="/university/{{ uni.id }}" class="edit-link">Cancel</a>
-            </div>
-        </form>
-    </div>
-</body>
-</html>
+{% extends "base_app.html" %}
+{% set active_page = "applications" %}
+{% block title %}Edit {{ uni.name }} · admit.{% endblock %}
+{% block crumb %}<a href="/university/{{ uni.id }}">{{ uni.name }}</a> / Edit{% endblock %}
+{% block top_action %}<a class="admit-add" href="/university/{{ uni.id }}">Cancel</a>{% endblock %}
+{% block content %}
+<div class="admit-content edit-page">
+    <span class="admit-eyebrow">Application details</span>
+    <h1 class="admit-display">Edit <em>{{ uni.name }}</em></h1>
+    <form action="/edit/{{ uni.id }}" method="POST" class="editorial-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>University name<input type="text" name="name" value="{{ uni.name }}" required></label>
+        <label>Application deadline<input type="date" name="deadline" value="{{ uni.deadline }}" required></label>
+        <label>Program or major<input type="text" name="program" value="{{ uni.program }}" placeholder="Optional"></label>
+        <label>Application portal<input type="url" name="portal_url" value="{{ uni.portal_url }}" placeholder="https://"></label>
+        <div class="editorial-form-row"><label>Tuition cost<input type="number" step="0.01" min="0" name="tuition_cost" value="{{ uni.tuition_cost if uni.tuition_cost is not none else '' }}" placeholder="$"></label><label>Aid estimate<input type="number" step="0.01" min="0" name="financial_aid_estimate" value="{{ uni.financial_aid_estimate if uni.financial_aid_estimate is not none else '' }}" placeholder="$"></label></div>
+        <label>Notes<textarea name="notes" placeholder="Anything useful to remember" rows="4">{{ uni.notes }}</textarea></label>
+        <button type="submit">Save application</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,169 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>Analytics - University Application Tracker</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script>
-        (function () {
-            const saved = localStorage.getItem("theme");
-            if (saved) document.documentElement.setAttribute("data-theme", saved);
-        })();
-    </script>
-</head>
-<body>
-    <div class="page">
-        <header class="top-bar">
-            <h1>Analytics</h1>
-            <div class="top-bar-actions">
-                <a href="/dashboard" class="btn-secondary">Dashboard</a>
-                <a href="/pipeline" class="btn-secondary">Applications</a>
-                <a href="/export/calendar" class="btn-secondary">Calendar</a>
-            </div>
-        </header>
+{% extends "base_app.html" %}
+{% set active_page = "readiness" %}
+{% block title %}Readiness · admit.{% endblock %}
+{% block crumb %}Know exactly what needs attention{% endblock %}
 
-        {% if not universities %}
-        <p class="empty-state">Add a university on the dashboard to see analytics here.</p>
-        {% else %}
-
-        <div class="analytics-charts">
-            <div class="task-section">
-                <h2>Status breakdown</h2>
-                <canvas id="statusChart" height="220"></canvas>
-            </div>
-            <div class="task-section">
-                <h2>Checklist progress</h2>
-                <canvas id="progressChart" height="220"></canvas>
-            </div>
-        </div>
-
-        {% if has_cost_data %}
-        <div class="task-section">
-            <h2>Cost comparison</h2>
-            <div class="table-scroll">
-            <table class="cost-table">
-                <thead>
-                    <tr>
-                        <th>University</th>
-                        <th>Tuition</th>
-                        <th>Aid estimate</th>
-                        <th>Net cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for uni in cost_ranked_universities %}
-                    <tr>
-                        <td>{{ uni.name }}</td>
-                        <td>{{ "$%.0f"|format(uni.tuition_cost) if uni.tuition_cost is not none else "-" }}</td>
-                        <td>{{ "$%.0f"|format(uni.financial_aid_estimate) if uni.financial_aid_estimate is not none else "-" }}</td>
-                        <td>{{ "$%.0f"|format(uni.net_cost) if uni.net_cost is not none else "-" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="task-section">
-            <h2>Deadline timeline</h2>
-            {% if not timeline_events %}
-            <p class="empty-state">No dated tasks yet.</p>
-            {% endif %}
-            <ul class="timeline-list">
-                {% for event in timeline_events %}
-                <li><span class="timeline-date">{{ event.date }}</span> {{ event.label }}</li>
+{% block content %}
+<div class="admit-content">
+    <div class="admit-page-title"><div><span class="admit-eyebrow">No vanity metrics</span><h1>Readiness</h1></div></div>
+    {% if universities %}
+    {% set total = universities|length %}
+    {% set first_stop = (status_counts['Not Started'] * 100 / total)|round %}
+    {% set second_stop = ((status_counts['Not Started'] + status_counts['In Progress']) * 100 / total)|round %}
+    <div class="readiness-layout">
+        <section class="readiness-score">
+            <div class="big-number">{{ overall_readiness }}<span>%</span></div>
+            <h2>{% if overall_readiness >= 75 %}Your cycle is on track.{% elif overall_readiness >= 45 %}You are building momentum.{% else %}Your next steps are clear.{% endif %}</h2>
+            <p>This score combines checklist, essay, recommendation, document, and interview progress across every application.</p>
+            <div class="readiness-bars">
+                {% for uni in universities %}
+                {% set brand = get_university_brand(uni.name) %}
+                <div class="readiness-row"><span>{{ uni.name }}</span><div class="readiness-bar"><i style="--w:{{ uni.readiness_score }}%;--c:{{ brand.primary }}"></i></div><b>{{ uni.readiness_score }}</b></div>
                 {% endfor %}
-            </ul>
-        </div>
-
-        <script>
-            const statusData = {{ status_counts | tojson }};
-            const universities = {{ universities | tojson }};
-
-            const rootStyles = getComputedStyle(document.documentElement);
-            const cssVar = (name) => rootStyles.getPropertyValue(name).trim();
-            const textColor = cssVar("--text");
-            const mutedColor = cssVar("--text-muted");
-            const gridColor = cssVar("--border");
-
-            Chart.defaults.font.family = "'Public Sans', -apple-system, sans-serif";
-            Chart.defaults.color = mutedColor;
-
-            const totalUniversities = Object.values(statusData).reduce((sum, n) => sum + n, 0);
-
-            const centerTextPlugin = {
-                id: "centerText",
-                afterDraw(chart) {
-                    if (chart.config.type !== "doughnut") return;
-                    const { ctx, chartArea: { width, height, left, top } } = chart;
-                    ctx.save();
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    ctx.font = "600 26px 'Fraunces', Georgia, serif";
-                    ctx.fillStyle = textColor;
-                    ctx.fillText(String(totalUniversities), left + width / 2, top + height / 2 - 7);
-                    ctx.font = "500 10px 'IBM Plex Mono', monospace";
-                    ctx.fillStyle = mutedColor;
-                    ctx.fillText(totalUniversities === 1 ? "SCHOOL" : "SCHOOLS", left + width / 2, top + height / 2 + 14);
-                    ctx.restore();
-                },
-            };
-
-            new Chart(document.getElementById("statusChart"), {
-                type: "doughnut",
-                data: {
-                    labels: Object.keys(statusData),
-                    datasets: [{
-                        data: Object.values(statusData),
-                        backgroundColor: [cssVar("--neutral"), cssVar("--warning"), cssVar("--success")],
-                        borderColor: cssVar("--card-bg"),
-                        borderWidth: 2,
-                    }],
-                },
-                options: {
-                    cutout: "72%",
-                    plugins: {
-                        legend: { position: "bottom", labels: { color: mutedColor, usePointStyle: true, boxWidth: 8 } },
-                    },
-                },
-                plugins: [centerTextPlugin],
-            });
-
-            new Chart(document.getElementById("progressChart"), {
-                type: "bar",
-                data: {
-                    labels: universities.map(u => u.name),
-                    datasets: [{
-                        label: "Checklist % complete",
-                        data: universities.map(u => u.progress_percent),
-                        backgroundColor: cssVar("--accent"),
-                        borderRadius: 5,
-                        maxBarThickness: 36,
-                    }],
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: { color: mutedColor },
-                            grid: { color: gridColor },
-                        },
-                        x: {
-                            ticks: { color: mutedColor },
-                            grid: { display: false },
-                        },
-                    },
-                    plugins: { legend: { display: false } },
-                },
-            });
-        </script>
-        {% endif %}
+            </div>
+        </section>
+        <section>
+            <div class="readiness-ring-wrap"><div class="readiness-ring" style="--building:{{ first_stop }}%;--ready:{{ second_stop }}%" data-total="{{ total }}" role="img" aria-label="{{ total }} applications by status"></div></div>
+            <div class="legend"><span>Researching {{ status_counts['Not Started'] }}</span><span>Building {{ status_counts['In Progress'] }}</span><span>Submitted {{ status_counts['Submitted'] }}</span></div>
+        </section>
     </div>
-</body>
-</html>
+    {% if has_cost_data %}
+    <section class="cost-paper"><div class="admit-section-head"><h2>Cost comparison</h2><small>Estimated annual figures</small></div><div class="table-scroll"><table class="cost-table"><thead><tr><th>University</th><th>Tuition</th><th>Aid estimate</th><th>Net cost</th></tr></thead><tbody>{% for uni in cost_ranked_universities %}<tr><td>{{ uni.name }}</td><td>{{ "$%.0f"|format(uni.tuition_cost) if uni.tuition_cost is not none else "–" }}</td><td>{{ "$%.0f"|format(uni.financial_aid_estimate) if uni.financial_aid_estimate is not none else "–" }}</td><td>{{ "$%.0f"|format(uni.net_cost) if uni.net_cost is not none else "–" }}</td></tr>{% endfor %}</tbody></table></div></section>
+    {% endif %}
+    {% else %}<section class="admit-empty"><h1 class="admit-display">Readiness starts with one application.</h1><p class="admit-lead">Add a university to see your progress here.</p></section>{% endif %}
+</div>
+{% endblock %}

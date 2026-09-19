@@ -1,152 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>{{ uni.name }} - University Application Tracker</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-        (function () {
-            const saved = localStorage.getItem("theme");
-            if (saved) document.documentElement.setAttribute("data-theme", saved);
-        })();
-    </script>
-</head>
-<body>
-    <div class="page">
-        <header class="top-bar">
-            <div>
-                <a href="/dashboard" class="edit-link">&larr; Back to dashboard</a>
-                <h1>{{ uni.name }}</h1>
-                <p class="uni-deadline">Due {{ uni.deadline }} &middot; {{ days_text }}</p>
-            </div>
-            <div class="top-bar-actions">
-                <form action="/duplicate/{{ uni.id }}" method="POST" class="inline-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn-secondary">Duplicate</button>
-                </form>
-                <a href="/edit/{{ uni.id }}" class="btn-secondary">Edit details</a>
-            </div>
-        </header>
+{% extends "base_app.html" %}
+{% set active_page = "applications" %}
+{% set brand = get_university_brand(uni.name) %}
+{% block title %}{{ uni.name }} · admit.{% endblock %}
+{% block crumb %}<a href="/dashboard">Overview</a> / {{ uni.name }}{% endblock %}
+{% block top_action %}<a class="admit-add" href="/edit/{{ uni.id }}">Edit application</a>{% endblock %}
 
-        <div class="profile-summary">
-            {% if uni.program %}<span class="stat">Program: <strong>{{ uni.program }}</strong></span>{% endif %}
-            {% if uni.portal_url %}<span class="stat"><a href="{{ uni.portal_url }}" target="_blank" rel="noopener">Application portal &#8599;</a></span>{% endif %}
-            {% if uni.tuition_cost is not none %}<span class="stat">Tuition: <strong>${{ "%.0f"|format(uni.tuition_cost) }}</strong></span>{% endif %}
-            {% if uni.financial_aid_estimate is not none %}<span class="stat">Aid estimate: <strong>${{ "%.0f"|format(uni.financial_aid_estimate) }}</strong></span>{% endif %}
-            {% if net_cost is not none %}<span class="stat stat-highlight">Net cost: <strong>${{ "%.0f"|format(net_cost) }}</strong></span>{% endif %}
+{% block content %}
+<div class="admit-content">
+    <section class="application-hero" style="--school:{{ brand.primary }}">
+        <div class="application-hero-art"><div class="profile-campus"><div class="campus-roof"></div><div class="campus-body"><i></i><i></i><i></i><i></i></div></div></div>
+        <div class="application-hero-copy">
+            <span class="admit-eyebrow">{{ brand.location or 'University application' }}</span>
+            <h1>{{ uni.name }}</h1>
+            <p>{{ uni.program or 'Application plan' }} · {{ uni.status }}</p>
+            <div class="next-deadline"><b>{{ days_text }}</b><span>Deadline {{ uni.deadline }}</span></div>
+        </div>
+    </section>
+
+    <div class="application-columns">
+        <div class="application-sections">
+            {% set section_labels = {"essay": "Essays", "recommendation": "Recommendation letters", "document": "Documents", "interview": "Interviews"} %}
+            {% set field_labels = {"essay": "Essay title", "recommendation": "Recommendation title", "document": "Document name", "interview": "Interview name"} %}
+            {% for task_type in ["essay", "recommendation", "document", "interview"] %}
+            <section class="paper-section">
+                <div class="admit-section-head"><h2>{{ section_labels[task_type] }}</h2><small>{{ tasks_by_type[task_type]|length }} item{{ '' if tasks_by_type[task_type]|length == 1 else 's' }}</small></div>
+                {% if not tasks_by_type[task_type] %}<p class="empty-state">Nothing added yet.</p>{% endif %}
+                {% for task in tasks_by_type[task_type] %}
+                <article class="profile-task">
+                    <div class="profile-task-head"><div><strong>{{ task.title }}</strong>{% if task.due_date %}<small>Due {{ task.due_date }}</small>{% endif %}</div><span>{{ task.status }}</span></div>
+                    {% if task.task_type == "essay" and task.prompt %}<p>{{ task.prompt }}</p>{% endif %}
+                    {% if task.task_type == "recommendation" and task.recommender_email %}<p>{{ task.recommender_email }}</p>{% endif %}
+                    {% if task.task_type == "document" %}
+                        {% if task.file_name %}<p><a href="/tasks/file/{{ task.id }}">↓ {{ task.file_name }}</a></p><form action="/tasks/file/delete/{{ task.id }}" method="POST" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="paper-link danger">Remove file</button></form>
+                        {% else %}<form action="/tasks/upload/{{ task.id }}" method="POST" enctype="multipart/form-data" class="compact-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required><button type="submit">Attach</button></form>{% endif %}
+                    {% endif %}
+                    <form action="/tasks/update/{{ task.id }}" method="POST" class="compact-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><select name="status">{% for option in task_status_options[task_type] %}<option value="{{ option }}" {% if option == task.status %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>{% if task_type == 'essay' %}<input type="number" min="0" name="word_count" value="{{ task.word_count if task.word_count is not none else '' }}" placeholder="Words">{% endif %}<input type="text" name="notes" value="{{ task.notes }}" placeholder="Notes"><button type="submit">Update</button></form>
+                    <form action="/tasks/delete/{{ task.id }}" method="POST" class="inline-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="paper-link danger">Delete</button></form>
+                </article>
+                {% endfor %}
+                <form action="/tasks/add/{{ uni.id }}/{{ task_type }}" method="POST" class="paper-add-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="text" name="title" placeholder="{{ field_labels[task_type] }}" required>{% if task_type == 'essay' %}<input type="text" name="prompt" placeholder="Essay prompt (optional)">{% endif %}{% if task_type == 'recommendation' %}<input type="text" name="recommender_name" placeholder="Recommender name"><input type="email" name="recommender_email" placeholder="Email (optional)">{% endif %}<input type="date" name="due_date"><button type="submit">＋ Add</button></form>
+            </section>
+            {% endfor %}
         </div>
 
-        {% if uni.notes %}
-        <p class="uni-notes">{{ uni.notes }}</p>
-        {% endif %}
-
-        <section class="task-section">
-            <h2>Share with a parent or counselor</h2>
-            {% if share_url %}
-            <p class="task-detail">Anyone with this link can view a read-only summary (no login needed):</p>
-            <p class="uni-notes">
-                <a href="{{ share_url }}" target="_blank" rel="noopener">{{ share_url }}</a>
-            </p>
-            <form action="/university/{{ uni.id }}/unshare" method="POST" class="inline-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="delete-link link-button">Revoke link</button>
-            </form>
-            {% else %}
-            <p class="task-detail">Not currently shared. Create a read-only link to send to a parent or counselor.</p>
-            <form action="/university/{{ uni.id }}/share" method="POST" class="inline-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn-secondary">Create share link</button>
-            </form>
-            {% endif %}
-        </section>
-
-        {% set section_labels = {"essay": "Essays", "recommendation": "Recommendation Letters", "document": "Documents", "interview": "Interviews"} %}
-        {% set field_labels = {"essay": "Essay title", "recommendation": "Recommender name", "document": "Document name", "interview": "Interview (e.g. Alumni Interview)"} %}
-
-        {% for task_type in ["essay", "recommendation", "document", "interview"] %}
-        <section class="task-section">
-            <h2>{{ section_labels[task_type] }}</h2>
-
-            {% if not tasks_by_type[task_type] %}
-            <p class="empty-state">Nothing added yet.</p>
-            {% endif %}
-
-            {% for task in tasks_by_type[task_type] %}
-            <div class="task-card">
-                <div class="task-card-top">
-                    <div>
-                        <p class="task-title">{{ task.title }}</p>
-                        {% if task.task_type == "essay" and task.prompt %}
-                        <p class="task-detail">{{ task.prompt }}</p>
-                        {% endif %}
-                        {% if task.task_type == "recommendation" and task.recommender_email %}
-                        <p class="task-detail">{{ task.recommender_email }}</p>
-                        {% endif %}
-                        {% if task.due_date %}
-                        <p class="task-detail">Due {{ task.due_date }}</p>
-                        {% endif %}
-                        {% if task.task_type == "document" and task.file_name %}
-                        <p class="task-detail">
-                            <a href="/tasks/file/{{ task.id }}">&#8595; {{ task.file_name }}</a>
-                        </p>
-                        {% endif %}
-                    </div>
-                    <span class="status-badge status-{{ task.status | replace(' ', '-') | lower }}">{{ task.status }}</span>
-                </div>
-
-                {% if task.task_type == "document" %}
-                {% if task.file_name %}
-                <form action="/tasks/file/delete/{{ task.id }}" method="POST" class="inline-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="delete-link link-button">Remove file</button>
-                </form>
-                {% else %}
-                <form action="/tasks/upload/{{ task.id }}" method="POST" class="inline-form" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="file" name="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
-                    <button type="submit" class="btn-secondary">Attach file</button>
-                </form>
-                {% endif %}
-                {% endif %}
-
-                <form action="/tasks/update/{{ task.id }}" method="POST" class="task-update-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <select name="status">
-                        {% for option in task_status_options[task_type] %}
-                        <option value="{{ option }}" {% if option == task.status %}selected{% endif %}>{{ option }}</option>
-                        {% endfor %}
-                    </select>
-                    {% if task_type == "essay" %}
-                    <input type="number" min="0" name="word_count" value="{{ task.word_count if task.word_count is not none else '' }}" placeholder="Word count">
-                    {% endif %}
-                    <input type="text" name="notes" value="{{ task.notes }}" placeholder="Notes">
-                    <button type="submit" class="btn-secondary">Update</button>
-                </form>
-                <form action="/tasks/delete/{{ task.id }}" method="POST" class="inline-form">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="delete-link link-button">Delete</button>
-                </form>
-            </div>
-            {% endfor %}
-
-            <form action="/tasks/add/{{ uni.id }}/{{ task_type }}" method="POST" class="add-task-detail-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="title" placeholder="{{ field_labels[task_type] }}" required>
-                {% if task_type == "essay" %}
-                <input type="text" name="prompt" placeholder="Essay prompt (optional)">
-                {% endif %}
-                {% if task_type == "recommendation" %}
-                <input type="text" name="recommender_name" placeholder="Recommender name">
-                <input type="email" name="recommender_email" placeholder="Recommender email (optional)">
-                {% endif %}
-                <input type="date" name="due_date">
-                <button type="submit" class="btn-primary">Add</button>
-            </form>
-        </section>
-        {% endfor %}
+        <aside class="profile-side">
+            <section class="profile-ticket" style="--school:{{ brand.primary }}"><span class="admit-eyebrow">Application file</span><h2>{{ uni.program or uni.name }}</h2>{% if uni.notes %}<p>{{ uni.notes }}</p>{% endif %}{% if uni.portal_url %}<a href="{{ uni.portal_url }}" target="_blank" rel="noopener">Open application portal ↗</a>{% endif %}</section>
+            <section class="profile-cost"><h2>Cost picture</h2>{% if uni.tuition_cost is not none %}<p><span>Tuition</span><strong>${{ "%.0f"|format(uni.tuition_cost) }}</strong></p>{% endif %}{% if uni.financial_aid_estimate is not none %}<p><span>Aid estimate</span><strong>${{ "%.0f"|format(uni.financial_aid_estimate) }}</strong></p>{% endif %}{% if net_cost is not none %}<p class="net"><span>Estimated net</span><strong>${{ "%.0f"|format(net_cost) }}</strong></p>{% endif %}</section>
+            <section class="profile-share"><h2>Share this application</h2>{% if share_url %}<p>Anyone with this link can view a read-only summary.</p><a href="{{ share_url }}" target="_blank" rel="noopener">Open shared view ↗</a><form action="/university/{{ uni.id }}/unshare" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="paper-link danger" type="submit">Revoke link</button></form>{% else %}<p>Create a read-only link for a parent or counselor.</p><form action="/university/{{ uni.id }}/share" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Create share link</button></form>{% endif %}</section>
+        </aside>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}
