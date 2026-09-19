@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}admit.{% endblock %}</title>
+    <title>{% block title %}Portico{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Caslon+Display&display=swap" rel="stylesheet">
@@ -15,9 +15,9 @@
 <body class="admit-body">
     <div class="admit-shell">
         <aside class="admit-rail">
-            <a class="admit-brand" href="/dashboard" aria-label="admit. dashboard">
-                <span class="admit-brandmark" aria-hidden="true"></span>
-                <span>admit.</span>
+            <a class="admit-brand" href="/dashboard" aria-label="Portico dashboard">
+                <img class="admit-brandmark" src="{{ url_for('static', filename='logo.svg') }}" alt="">
+                <span>Portico</span>
             </a>
             <p class="admit-cycle">Application cycle</p>
             <nav class="admit-nav" aria-label="Primary navigation">

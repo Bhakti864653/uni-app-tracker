@@ -1,7 +1,7 @@
 {% extends "base_app.html" %}
 {% set active_page = "applications" %}
 {% set brand = get_university_brand(uni.name) %}
-{% block title %}{{ uni.name }} · admit.{% endblock %}
+{% block title %}{{ uni.name }} · Portico{% endblock %}
 {% block crumb %}<a href="/dashboard">Overview</a> / {{ uni.name }}{% endblock %}
 {% block top_action %}<a class="admit-add" href="/edit/{{ uni.id }}">Edit application</a>{% endblock %}
 

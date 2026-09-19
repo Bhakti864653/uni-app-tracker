@@ -1,7 +1,7 @@
 {% extends "base_app.html" %}
 {% set active_page = "overview" %}
 
-{% block title %}Overview · admit.{% endblock %}
+{% block title %}Overview · Portico{% endblock %}
 {% block crumb %}Your application command center{% endblock %}
 {% block top_action %}<button class="admit-add" type="button" data-open-add>＋ Add university</button>{% endblock %}
 
@@ -96,7 +96,7 @@
     </section>
     <div class="visually-hidden" aria-hidden="true">{% for suggestion in suggestions %}<span>{{ suggestion.text }}</span>{% endfor %}</div>
     {% else %}
-    <section class="admit-empty"><span class="admit-eyebrow">A clear beginning</span><h1 class="admit-display">Let's set up your first application.</h1><p class="admit-lead">Add a university and admit. will turn its deadlines, documents, essays, and next steps into one organized journey.</p><button class="admit-add" type="button" data-open-add>＋ Add your first university</button></section>
+    <section class="admit-empty"><span class="admit-eyebrow">A clear beginning</span><h1 class="admit-display">Let's set up your first application.</h1><p class="admit-lead">Add a university and Portico will turn its deadlines, documents, essays, and next steps into one organized journey.</p><button class="admit-add" type="button" data-open-add>＋ Add your first university</button></section>
     {% endif %}
 </div>
 

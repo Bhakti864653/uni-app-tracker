@@ -1233,7 +1233,7 @@ def export_calendar():
     rows = get_user_universities(conn, session["user_id"])
     conn.close()
 
-    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//University Application Tracker//EN"]
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Portico University Application Tracker//EN"]
     now_stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     for row in rows:
         try:

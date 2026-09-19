@@ -1,4 +1,4 @@
-# University Application Tracker
+# Portico — University Application Tracker
 
 A full-featured web app for tracking college applications - deadlines, essays, recommendation letters, documents, costs, and progress - built solo from scratch while learning Python and web development.
 
